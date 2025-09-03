@@ -1,0 +1,3 @@
+[submodule "libs/deepnetts-community"]
+	path = libs/deepnetts-community
+	url = https://github.com/deepnetts/deepnetts-communityedition.git

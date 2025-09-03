@@ -1,0 +1,33 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow'
+}
+
+group = 'com.ververica.composable_job.flink'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.apache.flink:flink-java:1.17.0'
+    implementation 'org.apache.flink:flink-streaming-java:1.17.0'
+    implementation 'org.apache.flink:flink-connector-kafka:1.17.0'
+    implementation 'org.apache.flink:flink-clients:1.17.0'
+    implementation 'org.apache.flink:flink-json:1.17.0'
+    
+    implementation project(':models')
+    
+    compileOnly 'org.apache.flink:flink-java:1.17.0'
+    compileOnly 'org.apache.flink:flink-streaming-java:1.17.0'
+}
+
+application {
+    mainClass = 'com.ververica.composable_job.flink.ecommerce.EcommerceEventProcessor'
+}
+
+shadowJar {
+    archiveClassifier.set('all')
+}

@@ -27,7 +27,7 @@ docker compose up redpanda-init-topics
 
 # Build all projects
 echo -e "\n${BLUE}Building all projects...${NC}"
-./gradlew build -q
+./gradlew build -x test -q
 
 # Start Quarkus API in background
 echo -e "\n${BLUE}Starting Quarkus API...${NC}"

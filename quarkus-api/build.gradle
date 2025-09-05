@@ -15,10 +15,18 @@ dependencies {
     implementation 'io.quarkus:quarkus-websockets-next'
     implementation 'io.quarkus:quarkus-arc'
     implementation 'io.quarkus:quarkus-scheduler'
+    implementation 'io.quarkiverse.quinoa:quarkus-quinoa:2.4.4'
 
     implementation 'io.quarkus:quarkus-kafka-streams'
+    
+    // Testcontainers for dev services
+    implementation 'org.testcontainers:testcontainers:1.19.3'
+    implementation 'org.testcontainers:redpanda:1.19.3'
+    implementation 'org.testcontainers:kafka:1.19.3'
+    implementation 'io.quarkus:quarkus-smallrye-health'
 
     implementation project(':models')
+    implementation project(':flink-inventory')
 
     testImplementation project(":test-common")
     testImplementation 'io.quarkus:quarkus-junit5'

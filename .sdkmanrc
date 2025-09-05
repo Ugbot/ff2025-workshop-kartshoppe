@@ -1,0 +1,3 @@
+# SDKman configuration for KartShoppe
+# This file enables automatic Java version switching
+java=17.0.13-tem

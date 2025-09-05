@@ -148,3 +148,4 @@ out
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+/quarkus-api/.quinoa/node/node

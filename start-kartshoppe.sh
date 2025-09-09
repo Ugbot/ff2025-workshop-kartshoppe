@@ -53,43 +53,42 @@ for topic in "${KAFKA_TOPICS[@]}"; do
     echo -e "${GREEN}✓${NC} Topic '$topic' created"
 done
 
-# Build the models module first
-echo -e "\n${BLUE}Building models module...${NC}"
-./gradlew :models:build
+# Install frontend dependencies (required for Quinoa)
+if [ ! -d "kartshoppe-frontend/node_modules" ]; then
+    echo -e "\n${BLUE}Installing frontend dependencies...${NC}"
+    cd kartshoppe-frontend && npm install && cd ..
+fi
 
-# Start Quarkus API in development mode
-echo -e "\n${BLUE}Starting Quarkus API...${NC}"
+# Build the models module
+echo -e "\n${BLUE}Building required modules...${NC}"
+./gradlew :models:build -q
+
+# Start Quarkus with integrated frontend (Quinoa)
+echo -e "\n${BLUE}Starting Quarkus API with integrated KartShoppe frontend...${NC}"
+echo "Frontend will be served at http://localhost:8080/kartshoppe"
 ./gradlew :quarkus-api:quarkusDev &
 QUARKUS_PID=$!
 
 # Wait for Quarkus to start
-echo "Waiting for Quarkus to start..."
-sleep 15
-check_service "Quarkus API" 8080
-
-# Start KartShoppe Frontend
-echo -e "\n${BLUE}Starting KartShoppe Frontend...${NC}"
-cd kartshoppe-frontend
-
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "Installing frontend dependencies..."
-    npm install
-fi
-
-# Start the frontend
-npm run dev &
-FRONTEND_PID=$!
-cd ..
+echo "Waiting for Quarkus and frontend to start..."
+for i in {1..30}; do
+    if curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/q/health/ready | grep -q "200"; then
+        echo -e "\n${GREEN}✓ Quarkus with integrated frontend is ready!${NC}"
+        break
+    fi
+    sleep 2
+    echo -n "."
+done
 
 echo -e "\n${GREEN}=========================================="
 echo -e "🎉 KartShoppe is starting up!"
 echo -e "==========================================${NC}"
 echo
 echo -e "${BLUE}Access the application at:${NC}"
-echo -e "  Frontend:    ${GREEN}http://localhost:3000/kartshoppe${NC}"
-echo -e "  API:         ${GREEN}http://localhost:8080/api/ecommerce${NC}"
-echo -e "  WebSocket:   ${GREEN}ws://localhost:8080/ecommerce/{sessionId}/{userId}${NC}"
+echo -e "  KartShoppe App:  ${GREEN}http://localhost:8080/kartshoppe${NC}"
+echo -e "  Quarkus Dev UI:  ${GREEN}http://localhost:8080/q/dev${NC}"
+echo -e "  API Endpoints:   ${GREEN}http://localhost:8080/api/ecommerce${NC}"
+echo -e "  WebSocket:       ${GREEN}ws://localhost:8080/ecommerce/{sessionId}/{userId}${NC}"
 echo
 echo -e "${BLUE}Kafka Topics:${NC}"
 for topic in "${KAFKA_TOPICS[@]}"; do
@@ -102,7 +101,6 @@ echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
 cleanup() {
     echo -e "\n${YELLOW}Shutting down services...${NC}"
     kill $QUARKUS_PID 2>/dev/null
-    kill $FRONTEND_PID 2>/dev/null
     echo -e "${GREEN}Services stopped${NC}"
     exit 0
 }

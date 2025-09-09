@@ -27,7 +27,9 @@ echo "Starting quarkus app with pid $QUARKUS_PID.."
 DATAGEN_ID=$!
 echo "Starting flink datagen pipeline with pid $DATAGEN_ID.."
 
-echo -e "\nPipeline started. View the app on: http://localhost:8080/"
+echo -e "\nPipeline started."
+echo -e "View the KartShoppe app at: http://localhost:8080/kartshoppe"
+echo -e "View the Quarkus Dev UI at: http://localhost:8080/q/dev"
 read -p "Press any key to terminate..."
 
 kill -9 $DATAGEN_ID

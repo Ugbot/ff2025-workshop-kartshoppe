@@ -53,6 +53,12 @@ Provides guidance for managing multiple Java versions:
 - Commands for installing Java 11 and 17
 - Tips for switching between versions
 
+### `./fix-gradle-wrapper.sh`
+Fixes missing gradle-wrapper.jar issue:
+- Downloads the correct gradle-wrapper.jar
+- Required if you get "Could not find or load main class org.gradle.wrapper.GradleWrapperMain"
+- Automatically detects the correct Gradle version
+
 ## Removed Legacy Scripts
 
 The following scripts have been removed as they're no longer needed:

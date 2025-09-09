@@ -56,6 +56,17 @@
 
 ## Troubleshooting
 
+### Gradle Wrapper Error
+If you see "Could not find or load main class org.gradle.wrapper.GradleWrapperMain":
+```bash
+# The gradle-wrapper.jar file is missing. Run:
+./fix-gradle-wrapper.sh
+
+# Or manually download it:
+curl -L -o gradle/wrapper/gradle-wrapper.jar \
+  https://raw.githubusercontent.com/gradle/gradle/v8.14.1/gradle/wrapper/gradle-wrapper.jar
+```
+
 ### Java Version Issues
 
 The project uses different Java versions for different components:

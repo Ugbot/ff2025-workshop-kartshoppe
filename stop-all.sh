@@ -32,9 +32,8 @@ kill_by_pid_file() {
 echo -e "\n${BLUE}Stopping services...${NC}"
 
 # Stop Java processes
-kill_by_pid_file ".pids/quarkus.pid" "Quarkus API"
+kill_by_pid_file ".pids/quarkus.pid" "Quarkus API + Frontend"
 kill_by_pid_file ".pids/inventory.pid" "Flink Inventory Job"
-kill_by_pid_file ".pids/frontend.pid" "React Frontend"
 
 # Cleanup PID directory
 rm -rf .pids

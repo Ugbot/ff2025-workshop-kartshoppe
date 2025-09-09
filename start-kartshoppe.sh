@@ -23,19 +23,17 @@ check_service() {
 
 # Check prerequisites
 echo -e "\n${BLUE}Checking prerequisites...${NC}"
-check_service "Kafka" 9092
-KAFKA_RUNNING=$?
-check_service "Zookeeper" 2181
-ZOOKEEPER_RUNNING=$?
+check_service "Redpanda" 19092
+REDPANDA_RUNNING=$?
 
-if [ $KAFKA_RUNNING -ne 0 ] || [ $ZOOKEEPER_RUNNING -ne 0 ]; then
-    echo -e "\n${YELLOW}Starting Kafka and Zookeeper...${NC}"
+if [ $REDPANDA_RUNNING -ne 0 ]; then
+    echo -e "\n${YELLOW}Starting Redpanda...${NC}"
     if [ -f "docker-compose.yml" ]; then
-        docker-compose up -d kafka zookeeper
-        echo "Waiting for Kafka to start..."
+        docker compose up -d redpanda redpanda-console
+        echo "Waiting for Redpanda to start..."
         sleep 10
     else
-        echo -e "${RED}docker-compose.yml not found. Please start Kafka manually.${NC}"
+        echo -e "${RED}docker-compose.yml not found. Please start Redpanda manually.${NC}"
     fi
 fi
 
@@ -49,14 +47,10 @@ KAFKA_TOPICS=(
     "inventory_updates"
 )
 
+# Create topics using docker compose
+docker compose up redpanda-init-topics
 for topic in "${KAFKA_TOPICS[@]}"; do
-    docker exec -it kafka kafka-topics.sh \
-        --create --if-not-exists \
-        --topic $topic \
-        --bootstrap-server localhost:9092 \
-        --partitions 3 \
-        --replication-factor 1 \
-        2>/dev/null && echo -e "${GREEN}✓${NC} Topic '$topic' created" || echo -e "${YELLOW}⚠${NC} Topic '$topic' may already exist"
+    echo -e "${GREEN}✓${NC} Topic '$topic' created"
 done
 
 # Build the models module first
@@ -65,10 +59,8 @@ echo -e "\n${BLUE}Building models module...${NC}"
 
 # Start Quarkus API in development mode
 echo -e "\n${BLUE}Starting Quarkus API...${NC}"
-cd quarkus-api
-./gradlew quarkusDev &
+./gradlew :quarkus-api:quarkusDev &
 QUARKUS_PID=$!
-cd ..
 
 # Wait for Quarkus to start
 echo "Waiting for Quarkus to start..."

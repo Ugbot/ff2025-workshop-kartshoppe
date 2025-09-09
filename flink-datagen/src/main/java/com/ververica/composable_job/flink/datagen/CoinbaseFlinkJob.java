@@ -55,7 +55,7 @@ public class CoinbaseFlinkJob {
         // Kafka Sink — unified sink API (since Flink 1.15)
         //------------------------------------------------------------------------
         KafkaSink<String> kafkaSink = KafkaSink.<String>builder()
-                .setBootstrapServers("localhost:9092")
+                .setBootstrapServers("localhost:19092")
                 .setRecordSerializer(
                         KafkaRecordSerializationSchema.builder()
                                 .setTopic("coinbase-ticker")

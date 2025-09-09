@@ -25,6 +25,14 @@ sleep 10
 echo -e "\n${BLUE}Creating Kafka topics...${NC}"
 docker compose up redpanda-init-topics
 
+# Install frontend dependencies first (for Quinoa)
+echo -e "\n${BLUE}Installing frontend dependencies...${NC}"
+cd kartshoppe-frontend
+if [ ! -d "node_modules" ]; then
+    npm install
+fi
+cd ..
+
 # Build all projects
 echo -e "\n${BLUE}Building all projects...${NC}"
 ./gradlew build -x test -q

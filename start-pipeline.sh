@@ -1,14 +1,18 @@
 #!/bin/bash
 
-KAFKA_BROKER_NAME=ververica-composable-job-kafka-broker-1
+echo -e "\nStarting Redpanda containers...\n"
+docker compose up -d redpanda redpanda-console
+sleep 10
+echo -e "\nRedpanda started!\n"
 
-echo -e "\nWaiting for kafka containers to start...\n"
-docker compose up -d
-#while [ "$(docker inspect -f '{{.State.Running}}' $KAFKA_BROKER_NAME 2>/dev/null)" != "true" ]; do
-#    sleep 2
-#done
-sleep 5
-echo -e "\nKafka containers started!\n"
+# Create topics
+docker compose up redpanda-init-topics
+
+# Install frontend dependencies for Quinoa
+if [ ! -d "kartshoppe-frontend/node_modules" ]; then
+    echo "Installing frontend dependencies..."
+    cd kartshoppe-frontend && npm install && cd ..
+fi
 
 ./gradlew --console=plain quarkus-api:quarkusDev 1>/dev/null &
 QUARKUS_PID=$!
@@ -31,6 +35,6 @@ kill -9 $DATAGEN_ID
 kill -9 $QUARKUS_PID
 
 echo -e "\nPipeline terminated!"
-echo -e "Note: Kafka containers are still running and can be terminated with 'docker compose down'\n"
+echo -e "Note: Redpanda containers are still running and can be terminated with 'docker compose down'\n"
 
 

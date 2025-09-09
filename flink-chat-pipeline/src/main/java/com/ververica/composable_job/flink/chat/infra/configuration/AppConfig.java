@@ -64,7 +64,7 @@ public class AppConfig {
     }
 
     public String getKafkaBrokerUrl() {
-        return params.get("kafka-broker-url", "localhost:9092");
+        return params.get("kafka-broker-url", "localhost:19092");
     }
 
     public Properties getKafkaProperties() {

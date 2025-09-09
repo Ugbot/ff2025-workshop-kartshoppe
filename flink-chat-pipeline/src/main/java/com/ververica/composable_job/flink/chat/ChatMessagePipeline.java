@@ -35,7 +35,7 @@ public class ChatMessagePipeline {
     public static final String INPUT_TOPIC = "websocket_fanout";
 
     public static void main(String[] args) throws Exception {
-        String kafkaBrokers = ParameterTool.fromArgs(args).get("kafka-brokers", "localhost:9092");
+        String kafkaBrokers = ParameterTool.fromArgs(args).get("kafka-brokers", "localhost:19092");
 
         String apiKey = System.getenv("OPENAI_API_KEY");
         if (apiKey == null || apiKey.isEmpty()) {

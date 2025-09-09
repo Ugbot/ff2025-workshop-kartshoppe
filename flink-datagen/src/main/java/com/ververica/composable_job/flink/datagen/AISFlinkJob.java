@@ -216,7 +216,7 @@ public class AISFlinkJob {
 
         // Configure the Kafka sink using the new KafkaSink API.
         KafkaSink<String> kafkaSink = KafkaSink.<String>builder()
-                .setBootstrapServers("localhost:9092")  // Adjust as needed
+                .setBootstrapServers("localhost:19092")  // Adjust as needed
                 .setRecordSerializer(
                         KafkaRecordSerializationSchema.builder()
                                 .setTopic("ais-shipping-data")

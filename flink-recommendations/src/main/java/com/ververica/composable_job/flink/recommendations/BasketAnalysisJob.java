@@ -677,8 +677,8 @@ public class BasketAnalysisJob {
     }
     
     // Data classes
-    
-    public static class ActiveBasket implements Serializable {a d
+
+    public static class ActiveBasket implements Serializable {
         public String sessionId;
         public String userId;
         public List<String> viewedProducts = new ArrayList<>();

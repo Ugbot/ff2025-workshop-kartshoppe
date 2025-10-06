@@ -1,102 +1,213 @@
-# 🚀 KartShoppe - Flink Forward Barcelona 2025 Workshop
+# 🚀 Flink Ecosystem - Building Pipelines for Real-Time Data Lakes
 
-## Building Next-Generation Event-Driven Systems with Apache Flink & Paimon
+## Flink Forward Barcelona 2025 | 2-Day Intensive Workshop
 
 <div align="center">
   <img src="https://ververica.com/wp-content/uploads/2023/09/Ververica-logo.svg" width="300" alt="Ververica">
-  
-  **A Ververica Workshop on Modern Stream Processing Architecture**
+
+  **Advanced Apache Flink Training leveraging Ververica Technology**
 </div>
 
 ---
 
-Welcome to the **KartShoppe** workshop at Flink Forward Barcelona 2025! This hands-on workshop by Ververica demonstrates how to build production-ready, event-driven systems using Apache Flink's advanced stream processing capabilities, Apache Paimon's unified batch-stream storage, and modern event streaming patterns.
+Welcome to **Building Pipelines for Real-Time Data Lakes**! This intensive, 2-day face-to-face program is designed for Apache Flink users with 1-2 years of experience who want to take their skills to the intermediate level. We'll delve into advanced Flink concepts and techniques, empowering you to build and deploy highly scalable and efficient real-time data processing pipelines.
 
-## 🎯 Workshop Learning Objectives
+## 👥 Target Audience
 
-By completing this workshop, you will master:
+**Intermediate to Advanced** | 1-2 years of experience working with:
+- Data lakes
+- Stream processing
+- Apache Flink
 
-### 1. **Apache Flink Excellence**
-   - Build stateful stream processing applications with Flink DataStream API
-   - Implement exactly-once processing guarantees
-   - Master Flink's state backends and checkpointing mechanisms
-   - Deploy and monitor Flink jobs at scale
+## 🎯 Why This Workshop?
 
-### 2. **Apache Paimon Integration** 
-   - Implement unified batch and streaming data lakes
-   - Build real-time OLAP with Paimon tables
-   - Create CDC pipelines with Flink and Paimon
-   - Optimize storage with Paimon's LSM architecture
+Flink helps unlock the full potential of data lakes by providing the necessary stream and batch processing capabilities to transform raw data into actionable insights. This course will:
 
-### 3. **Event-Driven Architecture Patterns**
-   - Design event sourcing and CQRS systems
-   - Implement saga patterns for distributed transactions
-   - Build event-driven microservices with Flink
-   - Handle out-of-order and late-arriving events
+**Focus on the relationship between data lakes and how they are rooted in Flink's ability to process and analyze large-scale data that often resides in data lakes.**
 
-### 4. **Ververica Platform Best Practices**
-   - Deploy Flink applications using Ververica Platform patterns
-   - Implement observability and monitoring
-   - Scale streaming workloads dynamically
-   - Manage application lifecycles in production
+---
 
-## 🏗️ Architecture: The Ververica Way
+## 📚 What Will This Workshop Cover?
+
+### 1. **Data Lakes as Sources**
+Easily integrate data from cost-effective distributed storage systems in varying open source formats like **Paimon** into your Flink pipelines.
+
+### 2. **Flink for Real-Time Processing**
+Utilize Data Lakes as the input of streaming and batch jobs, bridging historical and real-time data.
+
+### 3. **Real-Time Data Ingestion**
+Automate all parts of your data processing pipeline with real-time data ingestion, enabling:
+- Real-time decision making
+- Model training
+- Inference
+
+### 4. **Long-Term Storage and Retrieval**
+Utilize Data Lakes for storage of intermediate processed results (e.g., feature engineering) with easy ingestion for downstream applications like retraining of machine learning models.
+
+### 5. **Unified Data Processing**
+Flink provides a unified framework for both stream and batch processing, important for managing and processing data at scale in Data Lakes. Flink provides consistency across your entire data pipeline with the scale and optimizations only Flink can provide.
+
+---
+
+## 🔧 How the Flink Ecosystem Technologies Fit Into the Workshop
+
+**Flink CDC, Paimon, and Fluss** are all integral parts of the Flink ecosystem that allow us to integrate large-scale Data Lakes with the real-time data processing of Flink. We use **real-world use cases** and **hands-on exercises** to demonstrate how Flink and Data Lakes work together seamlessly.
+
+### Key Technologies
+
+**🔄 Flink CDC + Flink SQL**
+- Automate data cleansing for real-time feature engineering in machine learning models
+- Retrieve raw data or store feature engineering results in Paimon
+- **NEW:** PostgreSQL CDC → Paimon pipeline included (see [FLINK-CDC-PAIMON-GUIDE.md](./FLINK-CDC-PAIMON-GUIDE.md))
+
+**📦 Apache Paimon**
+- Cost-effective, large-scale storage ready for real-time and batch processing
+- Combine data from Data Lakes and Kafka sources to create real-time machine learning pipelines with both historical and real-time model training
+- **NEW:** Historical pattern training data + CDC tables in unified lakehouse
+
+**⚡ Apache Fluss**
+- Supports low-latency stream processing
+- Ideal for storing and retrieving data with real-time analytics
+- High-performance event processing for data continuously ingested and stored in a Data Lake
+
+**🎯 CEP (Complex Event Processing)**
+- Power real-time pipelines using an optimized approach of CEP and model inference
+- Backed by the scale and power of Flink
+
+## 🏗️ Real-Time Data Lake Architecture with KartShoppe
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Ververica Platform Layer                     │
+│               REAL-TIME DATA LAKE PIPELINE                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                   │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐    │
-│  │ React        │────▶│  Quarkus     │────▶│   Redpanda   │    │
-│  │ Frontend     │◀────│  API Gateway │◀────│   (Kafka)    │    │
-│  └──────────────┘     └──────────────┘     └──────────────┘    │
-│         ▲                    │                      ▲            │
-│         │              ┌─────▼──────┐               │            │
-│         │              │ PostgreSQL │               │            │
-│         │              │  (OLTP)    │               │            │
-│         │              └────────────┘               │            │
-│         │                                           │            │
-│  ┌──────────────────────────────────────────────────▼─────┐     │
-│  │                  Apache Flink Jobs                      │     │
-│  ├──────────────────────────────────────────────────────────┤   │
-│  │ • Inventory Management (Stateful Processing)           │     │
-│  │ • Recommendation Engine (ML Pipeline)                  │     │
-│  │ • Basket Analysis (CEP & Windowing)                   │     │
-│  │ • CDC Pipeline (Database Sync)                        │     │
-│  └────────────────────────────────────────────────────────┘     │
-│         │                                           ▲            │
-│         └──────────────────┬────────────────────────┘            │
-│                           ▼                                      │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │              Apache Paimon (Unified Storage)             │   │
+│  │              DATA SOURCES                                 │   │
 │  ├──────────────────────────────────────────────────────────┤   │
-│  │ • Product Catalog (Streaming Table)                      │   │
-│  │ • Order History (Compacted Log)                         │   │
-│  │ • User Sessions (Time-Travel Queries)                   │   │
-│  │ • Analytics Views (Materialized Aggregations)           │   │
-│  └──────────────────────────────────────────────────────────┘   │
+│  │  • Historical Data (Paimon)                              │   │
+│  │  • Real-time Streams (Kafka/Redpanda)                    │   │
+│  │  • CDC from PostgreSQL (Flink CDC)                       │   │
+│  │  • Low-latency Events (Fluss)                            │   │
+│  └────────────┬───────────────┬─────────────┬────────────────┘   │
+│               │               │             │                    │
+│               ▼               ▼             ▼                    │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │         APACHE FLINK PROCESSING LAYER                    │    │
+│  ├─────────────────────────────────────────────────────────┤    │
+│  │                                                          │    │
+│  │  📊 Flink SQL & Table API                               │    │
+│  │    • Data cleansing and validation                      │    │
+│  │    • Feature engineering for ML                         │    │
+│  │    • Real-time aggregations                             │    │
+│  │                                                          │    │
+│  │  🔄 Stateful Stream Processing                          │    │
+│  │    • Session Windows (user behavior)                    │    │
+│  │    • Keyed State (inventory tracking)                   │    │
+│  │    • Timers (timeout detection)                         │    │
+│  │                                                          │    │
+│  │  🎯 Complex Event Processing (CEP)                       │    │
+│  │    • Cart abandonment patterns                          │    │
+│  │    • Fraud detection sequences                          │    │
+│  │    • User journey tracking                              │    │
+│  │                                                          │    │
+│  │  🤖 ML Model Training & Inference                        │    │
+│  │    • Broadcast State (model distribution)               │    │
+│  │    • Real-time predictions                              │    │
+│  │    • Historical + real-time features                    │    │
+│  │                                                          │    │
+│  └────────┬──────────────┬──────────────┬────────────────┘    │
+│           │              │              │                      │
+│           ▼              ▼              ▼                      │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │          DATA LAKE STORAGE (Apache Paimon)               │    │
+│  ├─────────────────────────────────────────────────────────┤    │
+│  │  • Feature Store (engineered features)                  │    │
+│  │  • Model Training Data (historical + real-time)         │    │
+│  │  • Processed Results (batch + streaming)                │    │
+│  │  • Time-travel enabled (versioned data)                 │    │
+│  └────────────────────────────────────────────────────────┘     │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │          DOWNSTREAM APPLICATIONS                         │    │
+│  ├─────────────────────────────────────────────────────────┤    │
+│  │  • React Frontend (real-time UI)                        │    │
+│  │  • Quarkus API (serving layer)                          │    │
+│  │  • ML Model Retraining (batch jobs)                     │    │
+│  │  • Analytics & Reporting                                │    │
+│  └─────────────────────────────────────────────────────────┘    │
 │                                                                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🌟 Why This Workshop Matters
+---
 
-**Ververica**, as the original creators of Apache Flink and leaders in stream processing, brings you real-world patterns used in production by companies processing billions of events daily. This workshop showcases:
+## 🎓 NEW: Pattern Learning Modules
 
-- **Battle-tested patterns** from Ververica's enterprise deployments
-- **Cutting-edge features** in Flink 1.20+ and Paimon
-- **Production insights** from the Flink committers
-- **Future roadmap** of stream processing technology
+This workshop now includes **isolated pattern learning modules** - learn Flink patterns one at a time before combining them!
+
+### Inventory Management Patterns (Foundational)
+**Location:** `flink-inventory/patterns/`
+
+| Pattern | What You'll Learn | Time |
+|---------|------------------|------|
+| **01. Hybrid Source** | Bootstrap from files → Kafka streaming | 45 min |
+| **02. Keyed State** | Per-key fault-tolerant state management | 60 min |
+| **03. Timers** | Timeout detection & scheduled processing | 60 min |
+| **04. Side Outputs** | Multi-way event routing (60% faster than filters!) | 45 min |
+
+**Quick start a pattern:**
+```bash
+# Run Pattern 01: Hybrid Source
+./gradlew :flink-inventory:run -PmainClass=com.ververica.composable_job.flink.inventory.patterns.hybrid_source.HybridSourceExample
+```
+
+See [`flink-inventory/patterns/README.md`](flink-inventory/src/main/java/com/ververica/composable_job/flink/inventory/patterns/README.md) for the complete learning guide.
+
+---
+
+### Recommendation Patterns (Advanced)
+**Location:** `flink-recommendations/patterns/`
+
+| Pattern | What You'll Learn | Time |
+|---------|------------------|------|
+| **01. Session Windows** | Group events by user sessions with inactivity gaps | 60-90 min |
+| **02. Broadcast State** | Distribute ML models to all tasks for real-time inference | 60-90 min |
+| **03. CEP (Complex Event Processing)** | Detect sequential patterns (cart abandonment, fraud) | 90-120 min |
+
+**Quick start a pattern:**
+```bash
+# Run Pattern 01: Session Windows
+./gradlew :flink-recommendations:run -PmainClass=com.ververica.composable_job.flink.recommendations.patterns.session_windows.SessionWindowExample
+
+# Run Pattern 02: Broadcast State
+./gradlew :flink-recommendations:run -PmainClass=com.ververica.composable_job.flink.recommendations.patterns.broadcast_state.BroadcastStateExample
+
+# Run Pattern 03: CEP Cart Abandonment
+./gradlew :flink-recommendations:run -PmainClass=com.ververica.composable_job.flink.recommendations.patterns.cep.CEPCartAbandonmentExample
+```
+
+See [`flink-recommendations/patterns/README.md`](flink-recommendations/src/main/java/com/ververica/composable_job/flink/recommendations/patterns/README.md) for the complete learning guide.
+
+---
+
+**Each module includes:**
+- ✅ Standalone runnable example
+- ✅ Comprehensive README (600-1,400 lines) with visual diagrams
+- ✅ 3 hands-on exercises with detailed solutions
+- ✅ Production tips & common pitfalls
+- ✅ 5 quiz questions with explanations
+- ✅ Real-world use cases (e-commerce, fraud detection, IoT)
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Java 17+ (for Flink jobs)
+- **Java 11** (for building Flink jobs - Flink 1.20 requirement)
+- **Java 17+** (runs in Docker for Quarkus API)
 - Docker & Docker Compose
 - Node.js 18+ (for frontend)
 - 8GB RAM minimum
-- Basic knowledge of SQL and Java/Scala
+- Basic knowledge of SQL and Java
 
 ### One-Command Setup
 
@@ -122,86 +233,319 @@ This orchestrates:
 | **Flink Dashboard** | http://localhost:8081 | Job monitoring |
 | **Paimon Catalog** | http://localhost:8082 | Table management |
 | **Redpanda Console** | http://localhost:8085 | Event streaming |
+| **PostgreSQL** | localhost:5432 | Operational database (CDC source) |
 | **Grafana Metrics** | http://localhost:3001 | Observability |
 
-## 📚 Workshop Modules
+## 🎯 Flink Job Implementations
 
-### Module 1: Foundations of Stream Processing (30 min)
-**Ververica Insight: From Batch to Streaming**
-- Evolution from MapReduce to stream processing
-- Flink's architecture and runtime
-- Understanding time: event-time vs processing-time
-- Watermarks and late data handling
+This demo includes **3 job variants** for different use cases:
 
-**Hands-on**: Deploy your first Flink job
+### 1. **BasketAnalysisJobRefactored** (Standard Job)
+**Recommended for:** First-time users, understanding the core patterns
 
-### Module 2: Stateful Stream Processing with Flink (45 min)
-**Ververica Pattern: Managing Distributed State**
-- Flink's state backends (RocksDB, Heap)
-- Keyed vs operator state
-- Checkpointing and fault tolerance
-- State TTL and cleanup strategies
+- Mines basket patterns from live shopping events
+- Writes patterns to both Kafka and Paimon
+- Uses Keyed State, Timers, and Broadcast State
+- **Start:** `./start-basket-job.sh`
 
-**Hands-on**: Build an inventory management system with exactly-once guarantees
+**Use when:** Learning the architecture or running with fresh data
 
-### Module 3: Apache Paimon - Unified Storage Layer (45 min)
-**Ververica Innovation: Beyond Traditional Data Lakes**
-- Paimon's LSM tree architecture
-- Unified batch and streaming reads
-- Primary key tables vs append-only tables
-- Time travel and versioning
+---
 
-**Hands-on**: Create a real-time data warehouse with Paimon
+### 2. **BasketAnalysisJobWithPretraining** (Hybrid Source Job)
+**Recommended for:** Production deployments, best recommendation quality
 
-### Module 4: Complex Event Processing & ML (45 min)
-**Ververica Advanced: Intelligence in Streaming**
-- Pattern detection with Flink CEP
-- Window functions and aggregations
-- Online machine learning pipelines
-- Feature engineering in real-time
+- Pre-loads 5000 historical patterns from Paimon (warm start)
+- Continues mining new patterns from live traffic
+- Provides immediate high-quality recommendations
+- **Start:** `./start-basket-job-with-pretraining.sh`
 
-**Hands-on**: Build a recommendation engine with basket analysis
+**Use when:** You want the best cold-start performance (runs historical data generator first if needed)
 
-### Module 5: Production Deployment Patterns (30 min)
-**Ververica Platform: Enterprise-Ready Streaming**
-- Job lifecycle management
-- Monitoring and alerting strategies
-- Performance tuning and optimization
-- Zero-downtime deployments
+---
 
-**Hands-on**: Deploy with savepoints and scaling
+### 3. **HistoricalBasketDataGenerator** (Training Data Generator)
+**Recommended for:** Creating sample training data
 
-## 🧩 Core Flink Jobs in KartShoppe
+- Generates 5000 realistic basket patterns
+- Covers 4 product categories (electronics, fashion, home_kitchen, sports)
+- 90-day temporal distribution
+- **Start:** `./init-paimon-training-data.sh`
 
-### 1. **Inventory Management Job**
-```java
-// Showcases: Stateful processing, exactly-once semantics
-DataStream<InventoryEvent> events = env.addSource(kafkaSource);
-events.keyBy(e -> e.getProductId())
-      .process(new InventoryStateFunction())
-      .sink(paimonSink);
+**Use when:** Setting up the demo for the first time or testing the hybrid source
+
+---
+
+**Quick Decision Guide:**
+- **New to the project?** → Start with `BasketAnalysisJobRefactored` (#1)
+- **Want best recommendations?** → Use `BasketAnalysisJobWithPretraining` (#2)
+- **Need training data?** → Run `HistoricalBasketDataGenerator` (#3) first
+
+---
+
+## 🔄 NEW: Flink CDC → Paimon Pipeline
+
+This demo now includes a complete **Change Data Capture (CDC)** pipeline that synchronizes PostgreSQL tables into Paimon in real-time!
+
+### Architecture
+
+```
+PostgreSQL (Operational)     Flink CDC             Paimon (Lakehouse)      Flink Jobs
+┌─────────────────┐          ┌────────────┐        ┌──────────────┐      ┌──────────────┐
+│  products       │          │ Logical    │        │ lakehouse.   │      │ Enriched     │
+│  customers      │──WAL────▶│ Replication│───────▶│   products   │─────▶│ Recommenda-  │
+│  orders         │          │ Slot       │        │   customers  │      │ tions        │
+│  inventory      │          │            │        │   orders     │      │              │
+└─────────────────┘          └────────────┘        └──────────────┘      └──────────────┘
+  Millisecond                Sub-second             Unified lakehouse     Real-time ML
+  latency writes             CDC capture            with time-travel      with fresh data
 ```
 
-### 2. **Real-time Recommendation Engine**
-```java
-// Showcases: ML pipeline, windowed aggregations
-DataStream<UserAction> actions = env.addSource(kafkaSource);
-actions.keyBy(a -> a.getUserId())
-       .window(SlidingEventTimeWindows.of(Time.minutes(30)))
-       .aggregate(new BasketAnalysis())
-       .asyncMap(new MLScoringFunction());
+### Quick Start CDC
+
+```bash
+# 1. Start PostgreSQL with CDC enabled
+docker compose up -d postgres
+
+# 2. Verify e-commerce tables created
+docker exec -it postgres-cdc psql -U postgres -d ecommerce -c "\dt"
+
+# 3. Follow the complete guide
+open FLINK-CDC-PAIMON-GUIDE.md
 ```
 
-### 3. **CDC Pipeline with Paimon**
-```java
-// Showcases: Change Data Capture, Paimon integration
-FlinkCDC.postgres()
-        .database("ecommerce")
-        .table("orders")
-        .deserializer(new JsonDebeziumDeserializationSchema())
-        .build()
-        .sinkTo(PaimonSink.forRowData(...));
+### What's Included
+
+- ✅ **PostgreSQL 15** with logical replication enabled
+- ✅ **Sample E-Commerce Schema**: products, customers, orders, inventory (44 sample products)
+- ✅ **Comprehensive Guide**: [FLINK-CDC-PAIMON-GUIDE.md](./FLINK-CDC-PAIMON-GUIDE.md)
+- ✅ **Multiple Sync Modes**: Single table, multi-table, regex, entire database
+- ✅ **Real-time Updates**: INSERT/UPDATE/DELETE captured in milliseconds
+- ✅ **Schema Evolution**: Automatic DDL tracking
+
+### Use Cases Enabled
+
+1. **Product Catalog Sync**: Always-fresh product data for recommendations
+2. **Inventory Tracking**: Real-time stock levels in data lake
+3. **Customer 360**: Unified customer view across operational + analytical
+4. **Order Analytics**: Instant order insights without batch ETL
+
+### Key Benefits
+
+| Without CDC | With Flink CDC → Paimon |
+|-------------|------------------------|
+| Batch ETL (hours delay) | Real-time (sub-second) |
+| Complex Airflow DAGs | Single Flink job |
+| Schema drift issues | Auto schema evolution |
+| Separate operational/analytical DBs | Unified lakehouse |
+
+📖 **Full Documentation**: [FLINK-CDC-PAIMON-GUIDE.md](./FLINK-CDC-PAIMON-GUIDE.md)
+
+---
+
+## 📚 2-Day Workshop Schedule
+
+### Day 1: Foundations & Data Lake Integration
+
+#### Session 1: Data Lakes as Flink Sources (90 min)
+**Topics:**
+- Integrating Paimon with Flink pipelines
+- Reading from cost-effective distributed storage
+- Supporting multiple open source formats
+- Bootstrapping state from historical data
+
+**Hands-on Lab:** Configure Paimon as source, initialize inventory state
+
+---
+
+#### Session 2: Real-Time Data Ingestion (90 min)
+**Topics:**
+- Combining batch and stream processing
+- Flink CDC for database synchronization
+- Kafka + Paimon integration
+- Automating data cleansing pipelines
+
+**Hands-on Lab:** Set up Flink CDC, stream updates to Paimon
+
+---
+
+#### Session 3: Flink SQL & Feature Engineering (120 min)
+**Topics:**
+- Flink SQL and Table API fundamentals
+- Real-time feature engineering for ML
+- Data transformations and aggregations
+- Storing features in Paimon
+
+**Hands-on Lab:** Write Flink SQL for feature extraction, calculate rolling aggregates
+
+---
+
+### Day 2: Advanced Patterns & ML Pipelines
+
+#### Session 4: Unified Stream & Batch Processing (90 min)
+**Topics:**
+- Flink's unified processing model
+- Session Windows for user behavior analysis
+- Stateful processing (Keyed State, Timers, Side Outputs)
+- Pattern learning modules (hands-on exercises)
+
+**Hands-on Lab:** Session windows, keyed state inventory tracking, side outputs
+
+---
+
+#### Session 5: Real-Time ML Pipelines (120 min)
+**Topics:**
+- Broadcast State for model distribution
+- Combining historical + real-time features
+- Model inference in Flink
+- Feature store with Paimon
+
+**Hands-on Lab:** Distribute ML models, build recommendation engine
+
+---
+
+#### Session 6: Complex Event Processing (90 min)
+**Topics:**
+- CEP patterns for cart abandonment
+- Fraud detection with sequential patterns
+- Optimized CEP + model inference
+- Integration with Fluss for low-latency
+
+**Hands-on Lab:** Detect cart abandonment, build fraud detection pipeline
+
+---
+
+#### Session 7: Production Deployment (60 min)
+**Topics:**
+- Long-term storage strategies with Paimon
+- Retrieval patterns for downstream apps
+- Performance optimization
+- Monitoring and observability
+
+**Hands-on Lab:** Deploy complete pipeline, configure checkpointing
+
+## 🛍️ KartShoppe: The Demo Application
+
+**KartShoppe** is a realistic e-commerce platform that demonstrates real-time data lake patterns using the Flink ecosystem. It's your hands-on laboratory for learning how to build production-grade streaming pipelines.
+
+### Real-World Use Cases Demonstrated
+
+#### 1. **Real-Time Inventory Management** 📦
+**Business Problem:** Track product stock levels across warehouses in real-time to prevent overselling.
+
+**What You'll Build:**
+- Stream inventory updates from PostgreSQL (Flink CDC)
+- Store historical inventory snapshots in Paimon
+- Process real-time stock changes with keyed state
+- Detect low-stock/out-of-stock conditions with timers
+- Route alerts using side outputs
+
+**Data Lake Integration:**
+- Bootstrap inventory from Paimon (historical data)
+- Stream live updates from Kafka (real-time)
+- Write processed results back to Paimon (feature store)
+
+**Technologies:** Flink CDC, Keyed State, Timers, Side Outputs, Paimon
+
+---
+
+#### 2. **Shopping Session Analysis** 🛒
+**Business Problem:** Understand user behavior by analyzing complete shopping sessions to improve conversion rates.
+
+**What You'll Build:**
+- Track user sessions with event-time session windows
+- Classify sessions (PURCHASE, ABANDONED_CART, BROWSER, QUICK_VISIT)
+- Calculate session metrics (duration, items viewed, cart value)
+- Store session summaries in Paimon for ML training
+
+**Data Lake Integration:**
+- Read historical sessions from Paimon
+- Process real-time events from Kafka
+- Write session features to Paimon (for model retraining)
+
+**Technologies:** Session Windows, Paimon, Flink SQL
+
+---
+
+#### 3. **Real-Time Recommendation Engine** 🤖
+**Business Problem:** Provide personalized product recommendations using ML models updated hourly.
+
+**What You'll Build:**
+- Distribute ML models to all Flink tasks (broadcast state)
+- Combine historical features (Paimon) + real-time events (Kafka)
+- Run inference in real-time (<100ms latency)
+- Store recommendations in Fluss for instant retrieval
+
+**Data Lake Integration:**
+- Load trained models from Paimon
+- Read user profiles and product features from Paimon
+- Write inference results to Fluss (low-latency storage)
+- Archive predictions to Paimon (for model evaluation)
+
+**Technologies:** Broadcast State, Paimon, Fluss, Flink SQL
+
+---
+
+#### 4. **Cart Abandonment Detection** ⚠️
+**Business Problem:** Identify users who add items to cart but don't purchase, triggering recovery emails.
+
+**What You'll Build:**
+- Detect ADD_TO_CART → (no PURCHASE) patterns with CEP
+- Calculate abandoned cart value
+- Trigger alerts for high-value abandonment ($100+)
+- Track recovery rates
+
+**Data Lake Integration:**
+- Store abandonment patterns in Paimon
+- Analyze historical abandonment trends
+- Feed data to ML models for predicting likelihood to convert
+
+**Technologies:** Flink CEP, Paimon
+
+---
+
+#### 5. **Feature Engineering for ML** 🧮
+**Business Problem:** Create real-time features for machine learning models (recommendations, pricing, fraud detection).
+
+**What You'll Build:**
+- Calculate rolling aggregates (user's avg cart value, purchase frequency)
+- Compute product popularity metrics
+- Generate user behavior features
+- Store in Paimon feature store
+
+**Data Lake Integration:**
+- Batch feature calculation from historical Paimon data
+- Stream real-time feature updates
+- Unified feature store (batch + stream) in Paimon
+- ML models read features for training/inference
+
+**Technologies:** Flink SQL, Table API, Paimon
+
+---
+
+#### 6. **End-to-End ML Pipeline** 🔄
+**Business Problem:** Train and deploy ML models using both historical and real-time data.
+
+**What You'll Build:**
+- Batch training on historical data (Paimon)
+- Real-time feature updates (streaming)
+- Model distribution (broadcast state)
+- Online inference (<50ms)
+- Model monitoring and retraining
+
+**Data Lake Integration:**
 ```
+Historical Data (Paimon) ─┐
+                          ├─→ Feature Engineering (Flink SQL) ─→ Training Data (Paimon)
+Real-time Events (Kafka) ─┘                                              │
+                                                                          ▼
+                                                                    Model Training
+                                                                          │
+                                                                          ▼
+Inference Requests ─→ Flink (Broadcast Model) ─→ Predictions ─→ Fluss/Paimon
+```
+
+**Technologies:** Flink SQL, Broadcast State, Paimon, Fluss
 
 ## 🔬 Advanced Topics Covered
 

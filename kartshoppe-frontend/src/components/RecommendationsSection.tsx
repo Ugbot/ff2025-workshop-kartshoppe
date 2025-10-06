@@ -29,12 +29,14 @@ const RecommendationsSection: React.FC = () => {
       const latestRec = recommendations[recommendations.length - 1]
       EventTracker.trackRecommendationClick(latestRec.recommendationId, product.productId)
     }
-    navigate(`/kartshoppe/product/${product.productId}`)
+    navigate(`/product/${product.productId}`)
   }
 
   if (recommendedProducts.length === 0) return null
 
   const latestRec = recommendations[recommendations.length - 1]
+  const isFlinkRec = latestRec?.source === 'FLINK_BASKET_ANALYSIS'
+  const recType = latestRec?.recommendationType || 'PERSONALIZED'
 
   return (
     <div className="bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-8">
@@ -50,11 +52,24 @@ const RecommendationsSection: React.FC = () => {
               </div>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Personalized for You</h2>
-              <p className="text-sm text-gray-600">{latestRec?.reason || 'Based on your browsing history'}</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {isFlinkRec ? '🤖 AI Basket Analysis' : 'Personalized for You'}
+                </h2>
+                {isFlinkRec && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800">
+                    Flink Pattern Mining
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-600">
+                {isFlinkRec
+                  ? `${recType.replace(/_/g, ' ')} • ${latestRec.context?.basketSize || ''} items in cart`
+                  : (latestRec?.reason || 'Based on your browsing history')}
+              </p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             {connected && (
               <div className="flex items-center space-x-2">
@@ -63,9 +78,11 @@ const RecommendationsSection: React.FC = () => {
               </div>
             )}
             <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-600">Confidence</span>
+              <span className="text-xs text-gray-600">
+                {isFlinkRec ? 'Pattern Confidence' : 'Confidence'}
+              </span>
               <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-primary-400 to-primary-600 transition-all duration-500"
                   style={{ width: `${(latestRec?.confidence || 0) * 100}%` }}
                 />

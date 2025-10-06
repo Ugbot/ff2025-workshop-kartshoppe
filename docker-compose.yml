@@ -60,8 +60,68 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        rpk topic create websocket_fanout processing_fanout ecommerce_events ecommerce_processing_fanout product_updates recommendations inventory_updates -X brokers=redpanda:9092
+        rpk topic create websocket_fanout processing_fanout ecommerce_events ecommerce_processing_fanout product_updates recommendations inventory_updates shopping-cart-events basket-patterns product-recommendations -X brokers=redpanda:9092
         echo "Topics created successfully"
+
+  quarkus-api:
+    image: quay.io/quarkus/ubi-quarkus-native-binary-s2i:2.0
+    container_name: quarkus-api
+    build:
+      context: ./quarkus-api
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/q/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - ./kartshoppe-frontend:/app/kartshoppe-frontend:ro
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-cdc
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # CDC Configuration
+      POSTGRES_INITDB_ARGS: "-c wal_level=logical"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "max_slot_wal_keep_size=1GB"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
 volumes:
   redpanda-data:
+  postgres-data:

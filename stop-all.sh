@@ -31,17 +31,16 @@ kill_by_pid_file() {
 # Stop all services
 echo -e "\n${BLUE}Stopping services...${NC}"
 
-# Stop Java processes
-kill_by_pid_file ".pids/quarkus.pid" "Quarkus API + Frontend"
+# Stop Flink Java processes
 kill_by_pid_file ".pids/inventory.pid" "Flink Inventory Job"
 
 # Cleanup PID directory
 rm -rf .pids
 
-# Stop Docker containers
+# Stop Docker containers (includes Quarkus)
 echo -e "\n${BLUE}Stopping Docker containers...${NC}"
 if docker compose down; then
-    echo -e "${GREEN}✓${NC} Docker containers stopped"
+    echo -e "${GREEN}✓${NC} Docker containers stopped (Quarkus + Redpanda)"
 else
     echo -e "${YELLOW}⚠${NC} No Docker containers were running"
 fi
@@ -51,9 +50,8 @@ echo -e "\n${BLUE}Cleaning up any remaining processes...${NC}"
 
 # Kill any remaining Java processes related to our services
 pkill -f "InventoryManagementJob" 2>/dev/null && echo -e "${GREEN}✓${NC} Killed remaining inventory processes"
-pkill -f "quarkus" 2>/dev/null && echo -e "${GREEN}✓${NC} Killed remaining Quarkus processes"
 
-# Kill any remaining Node processes on port 3000
+# Kill any remaining Node processes on port 3000 (if frontend was run standalone)
 lsof -ti:3000 | xargs kill 2>/dev/null && echo -e "${GREEN}✓${NC} Killed processes on port 3000"
 
 echo -e "\n${GREEN}========================================"

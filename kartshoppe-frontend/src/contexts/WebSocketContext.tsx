@@ -48,6 +48,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           case 'RECOMMENDATION':
             setRecommendations(prev => [...prev.slice(-4), data.payload])
             break
+          case 'BASKET_RECOMMENDATION':
+            // Recommendations from Flink basket analysis job
+            console.log('🎯 Received Flink basket recommendation:', data.payload)
+            setRecommendations(prev => [...prev.slice(-4), {
+              ...data.payload,
+              source: 'FLINK_BASKET_ANALYSIS',
+              productIds: data.payload.recommendedProducts || []
+            }])
+            break
           case 'SHOPPING_CART':
             setCartUpdates(prev => [...prev, data.payload])
             break

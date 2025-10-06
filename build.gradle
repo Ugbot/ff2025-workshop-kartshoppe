@@ -23,8 +23,8 @@ ext {
     defaultJavaVersion = JavaVersion.VERSION_11
     
     // Library versions
-    flinkVersion = '1.17.0'
-    kafkaVersion = '3.4.0'
+    flinkVersion = '1.20.0'
+    kafkaVersion = '3.8.1'
     quarkusVersion = '3.2.0.Final'
     jacksonVersion = '2.15.2'
     junitVersion = '5.9.3'

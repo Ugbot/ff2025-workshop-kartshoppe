@@ -105,7 +105,7 @@ public class EcommerceWebsocket {
     public void consumeProcessedEvent(String message) {
         try {
             ProcessingEvent<?> event = MAPPER.readValue(message, ProcessingEvent.class);
-            
+
             // Route events to appropriate connections
             switch (event.eventType) {
                 case RECOMMENDATION:
@@ -121,6 +121,39 @@ public class EcommerceWebsocket {
             }
         } catch (JsonProcessingException e) {
             Log.error("Failed to process fanout message", e);
+        }
+    }
+
+    /**
+     * Listen for recommendations from Flink basket analysis job.
+     * These come from the product-recommendations Kafka topic via RecommendationConsumer.
+     */
+    @Incoming("websocket_fanout")
+    @Blocking
+    public void consumeWebsocketFanout(String message) {
+        try {
+            Map<String, Object> event = MAPPER.readValue(message, Map.class);
+            String eventType = (String) event.get("eventType");
+
+            // Handle basket recommendations from Flink
+            if ("BASKET_RECOMMENDATION".equals(eventType)) {
+                String userId = (String) event.get("toUserId");
+                String sessionId = (String) event.get("key");
+
+                Log.infof("📨 Broadcasting Flink recommendation: session=%s, user=%s", sessionId, userId);
+
+                // Send to specific user or session
+                if (userId != null) {
+                    broadcastToUser(userId, message);
+                } else if (sessionId != null) {
+                    broadcastToSession(sessionId, message);
+                } else {
+                    // Fallback: broadcast to all
+                    websocketEmitter.emmit(message);
+                }
+            }
+        } catch (JsonProcessingException e) {
+            Log.error("Failed to process websocket fanout message", e);
         }
     }
 

@@ -65,7 +65,7 @@ echo -e "\n${BLUE}Building required modules...${NC}"
 
 # Start Quarkus with integrated frontend (Quinoa)
 echo -e "\n${BLUE}Starting Quarkus API with integrated KartShoppe frontend...${NC}"
-echo "Frontend will be served at http://localhost:8080/kartshoppe"
+echo "Frontend will be served at http://localhost:8080"
 ./gradlew :quarkus-api:quarkusDev &
 QUARKUS_PID=$!
 
@@ -85,7 +85,7 @@ echo -e "🎉 KartShoppe is starting up!"
 echo -e "==========================================${NC}"
 echo
 echo -e "${BLUE}Access the application at:${NC}"
-echo -e "  KartShoppe App:  ${GREEN}http://localhost:8080/kartshoppe${NC}"
+echo -e "  KartShoppe App:  ${GREEN}http://localhost:8080${NC}"
 echo -e "  Quarkus Dev UI:  ${GREEN}http://localhost:8080/q/dev${NC}"
 echo -e "  API Endpoints:   ${GREEN}http://localhost:8080/api/ecommerce${NC}"
 echo -e "  WebSocket:       ${GREEN}ws://localhost:8080/ecommerce/{sessionId}/{userId}${NC}"

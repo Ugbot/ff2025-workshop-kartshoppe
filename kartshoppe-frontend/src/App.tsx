@@ -27,7 +27,7 @@ function App() {
   }, [])
 
   return (
-    <Router basename="/kartshoppe">
+    <Router>
       <WebSocketProvider>
         <ProductCacheProvider>
           <CartProvider>

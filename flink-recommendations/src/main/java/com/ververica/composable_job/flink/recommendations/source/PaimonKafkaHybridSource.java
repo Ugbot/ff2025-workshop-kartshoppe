@@ -11,15 +11,19 @@ import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsIni
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
+import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.util.Collector;
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.CatalogContext;
 import org.apache.paimon.catalog.CatalogFactory;
 import org.apache.paimon.catalog.Identifier;
+import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.flink.FlinkCatalogFactory;
 import org.apache.paimon.flink.source.FlinkTableSource;
 import org.apache.paimon.options.Options;
 import org.apache.paimon.table.Table;
+import org.apache.paimon.types.RowType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +53,17 @@ public class PaimonKafkaHybridSource {
             String paimonDatabase,
             String paimonTable,
             String kafkaTopic) throws Exception {
-        
-        LOG.info("Creating hybrid source: Paimon ({}.{}) -> Kafka ({})", 
+
+        LOG.info("Creating hybrid source: Paimon ({}.{}) -> Kafka ({})",
             paimonDatabase, paimonTable, kafkaTopic);
-        
-        // Create Paimon source for historical data
-        DataStream<String> paimonSource = createPaimonSource(
-            env, paimonWarehouse, paimonDatabase, paimonTable);
-        
+
+        // Create Table Environment for Paimon access
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
+
+        // Create Paimon source for historical data using Table API
+        DataStream<BasketPattern> paimonPatterns = createPaimonSourceTableAPI(
+            env, tEnv, paimonWarehouse, paimonDatabase, paimonTable);
+
         // Create Kafka source for streaming updates
         KafkaSource<String> kafkaSource = KafkaSource.<String>builder()
             .setBootstrapServers(kafkaBootstrapServers)
@@ -66,22 +73,156 @@ public class PaimonKafkaHybridSource {
             .setValueOnlyDeserializer(new SimpleStringSchema())
             .setProperty("partition.discovery.interval.ms", "10000")
             .build();
-        
-        // Build hybrid source
-        HybridSource<String> hybridSource = HybridSource.<String>builder(paimonSource)
-            .addSource(kafkaSource)
-            .build();
-        
-        // Process patterns from hybrid source
-        return env.fromSource(
-                hybridSource,
+
+        // Parse Kafka patterns
+        DataStream<BasketPattern> kafkaPatterns = env.fromSource(
+                kafkaSource,
                 WatermarkStrategy.<String>forBoundedOutOfOrderness(Duration.ofSeconds(5)),
-                "Hybrid Pattern Source",
-                Types.STRING
+                "Kafka Pattern Stream"
             )
             .process(new PatternParser())
-            .name("Parse Basket Patterns")
-            .uid("pattern-parser");
+            .name("Parse Kafka Patterns")
+            .uid("kafka-pattern-parser");
+
+        // Union Paimon (historical) and Kafka (live) patterns
+        return paimonPatterns.union(kafkaPatterns)
+            .name("Hybrid Pattern Stream (Historical + Live)")
+            .uid("hybrid-pattern-stream");
+    }
+
+    /**
+     * Create Paimon source using Table API (cleaner approach)
+     */
+    private static DataStream<BasketPattern> createPaimonSourceTableAPI(
+            StreamExecutionEnvironment env,
+            StreamTableEnvironment tEnv,
+            String warehouse,
+            String database,
+            String tableName) throws Exception {
+
+        try {
+            // Create Paimon catalog
+            String catalogDDL = String.format(
+                "CREATE CATALOG IF NOT EXISTS paimon_catalog WITH (\n" +
+                "  'type' = 'paimon',\n" +
+                "  'warehouse' = '%s'\n" +
+                ")", warehouse);
+
+            tEnv.executeSql(catalogDDL);
+            tEnv.executeSql("USE CATALOG paimon_catalog");
+
+            // Check if table exists
+            String checkTable = String.format("SHOW TABLES FROM %s LIKE '%s'", database, tableName);
+            org.apache.flink.table.api.TableResult result = tEnv.executeSql(checkTable);
+
+            if (!result.collect().hasNext()) {
+                LOG.warn("⚠️  Paimon table {}.{} not found", database, tableName);
+                LOG.info("   Run ./init-paimon-training-data.sh to create training data");
+                LOG.info("   Using fallback sample patterns...");
+                return env.fromElements(generateSamplePatterns());
+            }
+
+            LOG.info("✅ Found Paimon table: {}.{}", database, tableName);
+
+            // Read table using Table API
+            Table table = tEnv.sqlQuery(String.format(
+                "SELECT antecedents, consequent, support, confidence, lift, category, user_id, session_id, created_at " +
+                "FROM %s.%s", database, tableName
+            ));
+
+            // Convert to DataStream<Row> then to BasketPattern
+            DataStream<org.apache.flink.types.Row> rows = tEnv.toDataStream(table);
+
+            return rows.map(row -> {
+                // Extract fields from Row
+                @SuppressWarnings("unchecked")
+                List<String> antecedents = (List<String>) row.getField(0);
+                String consequent = (String) row.getField(1);
+                Double support = (Double) row.getField(2);
+                Double confidence = (Double) row.getField(3);
+                Double lift = (Double) row.getField(4);
+                String category = (String) row.getField(5);
+                String userId = (String) row.getField(6);
+                String sessionId = (String) row.getField(7);
+
+                // Get timestamp (convert from LocalDateTime if needed)
+                long timestamp = System.currentTimeMillis();
+                Object createdAtObj = row.getField(8);
+                if (createdAtObj != null) {
+                    if (createdAtObj instanceof java.time.LocalDateTime) {
+                        timestamp = ((java.time.LocalDateTime) createdAtObj)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toInstant()
+                            .toEpochMilli();
+                    }
+                }
+
+                return new BasketPattern(
+                    antecedents,
+                    consequent,
+                    support,
+                    confidence,
+                    lift,
+                    category,
+                    userId,
+                    sessionId,
+                    timestamp
+                );
+            })
+            .name("Convert Paimon Rows to BasketPatterns")
+            .uid("paimon-row-to-pattern");
+
+        } catch (Exception e) {
+            LOG.warn("⚠️  Failed to read Paimon table: {}", e.getMessage());
+            LOG.info("   Using fallback sample patterns...");
+            return env.fromElements(generateSamplePatterns());
+        }
+    }
+
+    /**
+     * Generate sample patterns for fallback/demo
+     */
+    private static BasketPattern[] generateSamplePatterns() {
+        List<BasketPattern> patterns = new ArrayList<>();
+
+        // Electronics
+        patterns.add(createPatternObject(Arrays.asList("laptop"), "mouse", 0.15, 0.75, 2.1, "electronics"));
+        patterns.add(createPatternObject(Arrays.asList("laptop"), "keyboard", 0.12, 0.68, 1.9, "electronics"));
+        patterns.add(createPatternObject(Arrays.asList("phone"), "charger", 0.20, 0.85, 2.8, "electronics"));
+
+        // Fashion
+        patterns.add(createPatternObject(Arrays.asList("shirt"), "pants", 0.25, 0.72, 2.0, "fashion"));
+        patterns.add(createPatternObject(Arrays.asList("dress"), "shoes", 0.18, 0.76, 2.3, "fashion"));
+
+        // Home & Kitchen
+        patterns.add(createPatternObject(Arrays.asList("coffee_maker"), "coffee_beans", 0.22, 0.89, 2.7, "home_kitchen"));
+        patterns.add(createPatternObject(Arrays.asList("coffee_maker"), "filters", 0.19, 0.81, 2.5, "home_kitchen"));
+
+        // Sports
+        patterns.add(createPatternObject(Arrays.asList("yoga_mat"), "yoga_blocks", 0.14, 0.67, 2.0, "sports"));
+        patterns.add(createPatternObject(Arrays.asList("bicycle"), "helmet", 0.23, 0.87, 2.8, "sports"));
+
+        LOG.info("📝 Generated {} sample patterns for fallback", patterns.size());
+
+        return patterns.toArray(new BasketPattern[0]);
+    }
+
+    /**
+     * Create BasketPattern object
+     */
+    private static BasketPattern createPatternObject(List<String> antecedents, String consequent,
+                                                     double support, double confidence, double lift, String category) {
+        return new BasketPattern(
+            antecedents,
+            consequent,
+            support,
+            confidence,
+            lift,
+            category,
+            null,
+            null,
+            System.currentTimeMillis()
+        );
     }
     
     /**
@@ -92,45 +233,56 @@ public class PaimonKafkaHybridSource {
             String warehouse,
             String database,
             String tableName) throws Exception {
-        
+
         // Initialize Paimon catalog
         Options catalogOptions = new Options();
         catalogOptions.set("warehouse", warehouse);
-        
+
         CatalogContext catalogContext = CatalogContext.create(catalogOptions);
         Catalog catalog = CatalogFactory.createCatalog(catalogContext);
-        
-        // Get or create database
+
+        // Check if database exists
         try {
             catalog.createDatabase(database, true);
         } catch (Exception e) {
             LOG.debug("Database {} already exists", database);
         }
-        
-        // Get or create table
+
+        // Get table
         Identifier tableIdentifier = Identifier.create(database, tableName);
         Table table;
-        
+
         try {
             table = catalog.getTable(tableIdentifier);
+            LOG.info("✅ Found Paimon table: {}.{}", database, tableName);
         } catch (Exception e) {
-            LOG.info("Creating Paimon table {}.{}", database, tableName);
-            table = createPatternTable(catalog, tableIdentifier);
+            LOG.warn("⚠️  Paimon table {}.{} not found - using fallback sample patterns", database, tableName);
+            LOG.info("   Run ./init-paimon-training-data.sh to create historical training data");
+            // Fallback to sample patterns if table doesn't exist
+            return env.fromElements(generateInitialPatterns());
         }
-        
+
         // Create Flink source from Paimon table
         FlinkTableSource tableSource = new FlinkTableSource(
             table,
-            null,  // No projection
-            null,  // No filter
-            null   // No limit
+            null,  // No projection - read all columns
+            null,  // No filter - read all rows
+            null   // No limit - read entire table
         );
-        
-        // Convert to DataStream
-        // Note: This is simplified - actual implementation would use Table API
-        return env.fromElements(
-            generateInitialPatterns() // Generate sample patterns for demo
-        );
+
+        // Convert Paimon rows to JSON strings
+        // Note: Paimon returns InternalRow, we need to convert to BasketPattern JSON
+        DataStream<org.apache.paimon.data.InternalRow> paimonRows =
+            env.fromSource(
+                tableSource.toFlinkSource(),
+                WatermarkStrategy.noWatermarks(),
+                "Paimon Historical Patterns"
+            );
+
+        // Convert InternalRow to JSON string
+        return paimonRows.map(new PaimonRowToJsonConverter(table.rowType()))
+            .name("Convert Paimon Rows to JSON")
+            .uid("paimon-row-converter");
     }
     
     /**
@@ -292,18 +444,102 @@ public class PaimonKafkaHybridSource {
                 String[] parts = value.split("->");
                 String[] antecedentsPart = parts[0].split(",");
                 String[] consequentPart = parts[1].split(":");
-                
+
                 BasketPattern pattern = new BasketPattern();
                 pattern.setAntecedents(Arrays.asList(antecedentsPart));
                 pattern.setConsequent(consequentPart[0]);
                 pattern.setConfidence(Double.parseDouble(consequentPart[1]));
                 pattern.setSupport(pattern.getConfidence() * 0.3);
                 pattern.setLift(pattern.getConfidence() / 0.2);
-                
+
                 return pattern;
             }
-            
+
             return null;
+        }
+    }
+
+    /**
+     * Convert Paimon InternalRow to JSON BasketPattern string
+     */
+    public static class PaimonRowToJsonConverter implements org.apache.flink.api.common.functions.MapFunction<InternalRow, String> {
+        private final RowType rowType;
+        private static final ObjectMapper mapper = new ObjectMapper();
+
+        public PaimonRowToJsonConverter(RowType rowType) {
+            this.rowType = rowType;
+        }
+
+        @Override
+        public String map(InternalRow row) throws Exception {
+            try {
+                // Extract fields from Paimon row based on schema:
+                // pattern_id, antecedents, consequent, support, confidence, lift, category, user_id, session_id, created_at, event_time
+
+                // Get field indices
+                int antecedentsIdx = rowType.getFieldIndex("antecedents");
+                int consequentIdx = rowType.getFieldIndex("consequent");
+                int supportIdx = rowType.getFieldIndex("support");
+                int confidenceIdx = rowType.getFieldIndex("confidence");
+                int liftIdx = rowType.getFieldIndex("lift");
+                int categoryIdx = rowType.getFieldIndex("category");
+                int userIdIdx = rowType.getFieldIndex("user_id");
+                int sessionIdIdx = rowType.getFieldIndex("session_id");
+                int createdAtIdx = rowType.getFieldIndex("created_at");
+
+                // Extract antecedents array
+                org.apache.paimon.data.InternalArray antecedentsArray =
+                    row.getArray(antecedentsIdx);
+                List<String> antecedents = new ArrayList<>();
+                if (antecedentsArray != null) {
+                    for (int i = 0; i < antecedentsArray.size(); i++) {
+                        antecedents.add(antecedentsArray.getString(i).toString());
+                    }
+                }
+
+                // Extract other fields
+                String consequent = row.getString(consequentIdx).toString();
+                double support = row.getDouble(supportIdx);
+                double confidence = row.getDouble(confidenceIdx);
+                double lift = row.getDouble(liftIdx);
+                String category = row.isNullAt(categoryIdx) ? null : row.getString(categoryIdx).toString();
+                String userId = row.isNullAt(userIdIdx) ? null : row.getString(userIdIdx).toString();
+                String sessionId = row.isNullAt(sessionIdIdx) ? null : row.getString(sessionIdIdx).toString();
+
+                // Get timestamp (convert Timestamp to millis)
+                long timestamp = System.currentTimeMillis();
+                if (!row.isNullAt(createdAtIdx)) {
+                    org.apache.paimon.data.Timestamp ts = row.getTimestamp(createdAtIdx, 3);
+                    timestamp = ts.getMillisecond();
+                }
+
+                // Create BasketPattern
+                BasketPattern pattern = new BasketPattern(
+                    antecedents,
+                    consequent,
+                    support,
+                    confidence,
+                    lift,
+                    category,
+                    userId,
+                    sessionId,
+                    timestamp
+                );
+
+                // Convert to JSON
+                return mapper.writeValueAsString(pattern);
+
+            } catch (Exception e) {
+                LOG.error("Failed to convert Paimon row to BasketPattern", e);
+                // Return minimal valid pattern on error
+                BasketPattern fallback = new BasketPattern();
+                fallback.setAntecedents(Arrays.asList("unknown"));
+                fallback.setConsequent("unknown");
+                fallback.setConfidence(0.5);
+                fallback.setSupport(0.01);
+                fallback.setLift(1.0);
+                return mapper.writeValueAsString(fallback);
+            }
         }
     }
 }

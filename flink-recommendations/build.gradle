@@ -25,7 +25,8 @@ dependencies {
     implementation "org.apache.flink:flink-connector-files:${flinkVersion}"
     implementation "org.apache.flink:flink-json:${flinkVersion}"
     implementation "org.apache.flink:flink-connector-base:${flinkVersion}"
-    
+    implementation "org.apache.flink:flink-cep:${flinkVersion}"
+
     // Apache Paimon
     implementation "org.apache.paimon:paimon-flink-1.20:0.9.0"
     implementation "org.apache.paimon:paimon-flink-common:0.9.0"
@@ -56,7 +57,7 @@ dependencies {
 }
 
 application {
-    mainClass = 'com.ververica.composable_job.flink.recommendations.BasketAnalysisJob'
+    mainClass = 'com.ververica.composable_job.flink.recommendations.BasketAnalysisJobRefactored'
 }
 
 shadowJar {
@@ -71,8 +72,11 @@ shadowJar {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
 }
 
 tasks.withType(JavaCompile) {

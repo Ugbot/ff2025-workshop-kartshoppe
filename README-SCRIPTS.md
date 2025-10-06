@@ -1,13 +1,60 @@
 # Available Scripts
 
+## 🎓 Pattern Learning Modules
+
+### Flink Pattern Examples
+The project includes standalone pattern learning modules for workshop training:
+
+**Inventory Management Patterns** (`flink-inventory/patterns/`):
+- **Pattern 01: Hybrid Source** - Bootstrap from files → stream from Kafka
+- **Pattern 02: Keyed State** - Per-key state management with fault tolerance
+- **Pattern 03: Timers** - Timeout detection and scheduled tasks
+- **Pattern 04: Side Outputs** - Multi-way event routing
+
+Each pattern includes:
+- Standalone runnable example
+- Comprehensive README with exercises
+- Production tips and common pitfalls
+
+**Run pattern examples:**
+```bash
+# Pattern 01: Hybrid Source
+./gradlew :flink-inventory:run -PmainClass=com.ververica.composable_job.flink.inventory.patterns.hybrid_source.HybridSourceExample
+
+# Pattern 02: Keyed State
+./gradlew :flink-inventory:run -PmainClass=com.ververica.composable_job.flink.inventory.patterns.keyed_state.KeyedStateExample
+
+# Pattern 03: Timers
+./gradlew :flink-inventory:run -PmainClass=com.ververica.composable_job.flink.inventory.patterns.timers.TimerExample
+
+# Pattern 04: Side Outputs
+./gradlew :flink-inventory:run -PmainClass=com.ververica.composable_job.flink.inventory.patterns.side_outputs.SideOutputExample
+```
+
+See `flink-inventory/src/main/java/com/ververica/composable_job/flink/inventory/patterns/README.md` for the complete learning guide.
+
+## Build Scripts
+
+### `./build-all.sh`
+Builds the entire platform:
+- Builds Flink jobs with Java 11 (if available)
+- Builds Quarkus API with current Java version
+- Prepares frontend dependencies
+
+### `./build-flink.sh`
+Specifically builds Flink jobs with Java 11:
+- Automatically switches to Java 11 if available
+- Builds all Flink modules with shadowJar
+- Reverts to original Java version after building
+
 ## Main Scripts
 
 ### `./start-all.sh`
 Starts the complete KartShoppe platform including:
 - Redpanda (Kafka-compatible message broker)
-- Quarkus API with Quinoa frontend integration
+- Quarkus API with Quinoa frontend integration (single process)
 - Flink Inventory Management Job
-- KartShoppe React frontend
+- Note: Frontend is served at http://localhost:8080 (not /kartshoppe)
 
 ### `./stop-all.sh`
 Gracefully stops all running services and Docker containers.

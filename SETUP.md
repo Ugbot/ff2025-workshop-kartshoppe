@@ -2,23 +2,27 @@
 
 ## Prerequisites
 
-1. **Java Versions** (Mixed requirements)
-   - **Java 11**: Required for Flink modules
-   - **Java 17**: Required for Quarkus API
-   - Check version: `java -version`
-   - Recommended: Use SDKMAN for managing multiple versions
+1. **Java Versions** (Different requirements for build vs runtime)
+   - **Building Flink**: Requires Java 11
+   - **Building Quarkus**: Requires Java 17+
+   - **Running Everything**: Java 17+ works for all components
    
    ```bash
-   # Install SDKMAN
+   # Install SDKMAN for version management
    curl -s "https://get.sdkman.io" | bash
    
    # Install both Java versions
    sdk install java 11.0.25-tem
    sdk install java 17.0.9-tem
    
-   # Set Java 11 as default (for Flink)
-   sdk default java 11.0.25-tem
+   # Set Java 17 as default (can run everything)
+   sdk default java 17.0.9-tem
    ```
+   
+   **Build Strategy**:
+   - Use `./build-flink.sh` to build Flink jobs with Java 11
+   - Use `./build-all.sh` to build everything automatically
+   - Then run everything with Java 17
    
 2. **Docker** 
    - Required for running Redpanda (Kafka)

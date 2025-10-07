@@ -24,6 +24,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import io.smallrye.reactive.messaging.annotations.Broadcast;
 
 @WebSocket(path = "/chat/{username}")
 @ApplicationScoped
@@ -32,6 +33,7 @@ public class ChatWebsocket {
     private final static ObjectMapper MAPPER = new ObjectMapper();
 
     @Channel("websocket_fanout")
+    @Broadcast
     Emitter<RawChatMessage> emitter;
 
     @Inject

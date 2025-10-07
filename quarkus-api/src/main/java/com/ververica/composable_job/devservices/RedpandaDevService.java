@@ -1,7 +1,7 @@
 package com.ververica.composable_job.devservices;
 
 import io.quarkus.runtime.StartupEvent;
-import io.quarkus.runtime.configuration.ProfileManager;
+import io.quarkus.runtime.configuration.ConfigUtils;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -27,7 +27,7 @@ public class RedpandaDevService {
     boolean inventoryJobEnabled;
     
     void onStart(@Observes StartupEvent ev) {
-        if (!ProfileManager.getActiveProfile().equals("dev")) {
+        if (!ConfigUtils.getProfiles().contains("dev")) {
             LOG.info("Not in dev mode, skipping dev services");
             return;
         }

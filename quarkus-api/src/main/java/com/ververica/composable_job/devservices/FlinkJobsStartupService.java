@@ -1,7 +1,7 @@
 package com.ververica.composable_job.devservices;
 
 import io.quarkus.runtime.StartupEvent;
-import io.quarkus.runtime.configuration.ProfileManager;
+import io.quarkus.runtime.configuration.ConfigUtils;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -25,10 +25,10 @@ public class FlinkJobsStartupService {
     String kafkaBootstrapServers;
     
     void onStart(@Observes StartupEvent ev) {
-        String profile = ProfileManager.getActiveProfile();
-        LOG.infof("Starting up in profile: %s", profile);
-        
-        if (!"dev".equals(profile) && !"test".equals(profile)) {
+        var profiles = ConfigUtils.getProfiles();
+        LOG.infof("Starting up with profiles: %s", profiles);
+
+        if (!profiles.contains("dev") && !profiles.contains("test")) {
             LOG.info("Not in dev/test mode, skipping Flink jobs startup");
             return;
         }

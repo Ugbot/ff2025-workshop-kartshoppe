@@ -12,17 +12,17 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8081',
         changeOrigin: true,
         rewrite: (path) => path
       },
       '/ecommerce': {
-        target: 'ws://localhost:8080',
+        target: 'ws://localhost:8081',
         ws: true,
         changeOrigin: true
       },
       '/chat': {
-        target: 'ws://localhost:8080',
+        target: 'ws://localhost:8081',
         ws: true,
         changeOrigin: true
       }

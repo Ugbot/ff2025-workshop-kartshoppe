@@ -86,6 +86,22 @@ public class ShoppingAssistantJob {
         DataStream<Recommendation> recommendations = createRecommendationStream(env, broker);
 
         // Enrich chat messages with context
+        // ============================================================
+        // STATEFUL CONTEXT ENRICHMENT
+        // ============================================================
+        // Before sending to the LLM, we enrich each chat message with:
+        // 1. Conversation History - Last 10 messages from this session
+        // 2. Basket Context - Current items, total value, categories
+        // 3. User Intent - Detected from message content
+        //
+        // This enrichment is critical for LangChain4j prompt quality:
+        // - LLMs need context to give relevant responses
+        // - Flink's state provides efficient access to historical data
+        // - Connected streams allow us to track both chat and shopping events
+        //
+        // Pattern: CoProcessFunction for dual-input streams
+        // - processElement1: Handles chat messages (enriches and emits)
+        // - processElement2: Handles basket updates (updates state only)
         DataStream<EnrichedChatContext> enrichedMessages = chatMessages
             .keyBy(msg -> msg.sessionId)
             .connect(basketUpdates.keyBy(update -> update.sessionId))
@@ -94,6 +110,30 @@ public class ShoppingAssistantJob {
             .uid("chat-context-enricher");
 
         // Apply AI for intelligent responses with retry strategy
+        // ============================================================
+        // LANGCHAIN4J INTEGRATION: Async LLM Processing
+        // ============================================================
+        // This is where LangChain4j integrates with Flink's Async I/O pattern:
+        //
+        // 1. AsyncRetryStrategy: Handles transient LLM failures
+        //    - Retries up to 3 times with 1 second delay between attempts
+        //    - Critical for production reliability with external APIs
+        //
+        // 2. AsyncDataStream.orderedWaitWithRetry: Flink's async I/O operator
+        //    - Allows non-blocking LLM calls (avoids blocking Flink threads)
+        //    - Maintains event order (important for conversations)
+        //    - Capacity of 100: Max concurrent LLM requests in-flight
+        //    - Timeout of 60s: Maximum wait time for LLM response
+        //
+        // 3. ShoppingAssistantAsyncFunction: Contains LangChain4j logic
+        //    - Builds prompts with shopping context
+        //    - Calls OpenAI via LangChain4j ChatLanguageModel
+        //    - Returns CompletableFuture for async processing
+        //
+        // Performance Note: Without async I/O, this would be a bottleneck!
+        // - LLM calls take 500ms-5000ms each
+        // - Sync processing would limit throughput to ~2-200 msgs/sec per core
+        // - Async I/O enables 100x concurrent requests, dramatically increasing throughput
         AsyncRetryStrategy<AssistantResponse> asyncRetryStrategy =
                 new AsyncRetryStrategies.FixedDelayRetryStrategyBuilder<AssistantResponse>(3, 1000L)
                         .ifException(RetryPredicates.HAS_EXCEPTION_PREDICATE)
@@ -102,9 +142,9 @@ public class ShoppingAssistantJob {
         SingleOutputStreamOperator<AssistantResponse> aiResponses = AsyncDataStream.orderedWaitWithRetry(
                 enrichedMessages,
                 new ShoppingAssistantAsyncFunction(apiKey, modelName),
-                60,
+                60,                    // Timeout in seconds
                 TimeUnit.SECONDS,
-                100,
+                100,                   // Max concurrent requests
                 asyncRetryStrategy)
             .name("Generate AI Response")
             .uid("shopping-assistant-llm");

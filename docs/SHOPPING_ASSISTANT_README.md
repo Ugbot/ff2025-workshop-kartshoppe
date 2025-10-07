@@ -4,6 +4,14 @@
 
 The Shopping Assistant is an AI-powered chatbot integrated into the KartShoppe e-commerce platform. It provides personalized shopping assistance, product recommendations, and real-time support using Apache Flink for stream processing and OpenAI's GPT models for natural language understanding.
 
+## 📚 Documentation
+
+This README provides a quick overview and setup guide. For in-depth learning about the LangChain4j + Flink integration:
+
+- 🎓 **[LangChain4j + Flink Integration Guide](./LANGCHAIN4J_FLINK_INTEGRATION.md)** - Deep dive into how LangChain4j integrates with Flink, with hands-on lessons and best practices
+- 🚀 **[Flink Shopping Assistant README](../flink-shopping-assistant/README.md)** - Detailed documentation of the Flink job, configuration, and code structure
+- 💻 **Source Code** - Heavily annotated code with inline educational comments
+
 ## Architecture
 
 ```mermaid

@@ -70,17 +70,29 @@ class ProductService {
   async fetchProductById(id: string): Promise<Product | null> {
     // Check cache first
     if (this.productCache.has(id)) {
+      console.log(`Product ${id} found in cache`)
       return this.productCache.get(id)!
     }
 
     try {
+      console.log(`Fetching product ${id} from API`)
       const response = await axios.get(`/api/ecommerce/product/${id}`)
       const product = this.enrichProduct(response.data)
       this.productCache.set(id, product)
+      console.log(`Product ${id} fetched successfully`)
       return product
-    } catch (error) {
-      console.error('Failed to fetch product:', error)
-      return this.generateMockProduct(id)
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn(`Product ${id} not found (404) - this product doesn't exist in the backend`)
+        return null
+      }
+      console.error(`Failed to fetch product ${id}:`, error.message || error)
+      // Only generate mock as last resort for network errors
+      if (!error.response) {
+        console.log(`Using mock product for ${id} due to network error`)
+        return this.generateMockProduct(id)
+      }
+      return null
     }
   }
 

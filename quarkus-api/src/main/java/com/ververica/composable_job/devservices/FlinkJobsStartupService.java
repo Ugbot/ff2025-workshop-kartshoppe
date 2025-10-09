@@ -50,14 +50,17 @@ public class FlinkJobsStartupService {
     
     private void startInventoryJob() {
         try {
-            LOG.infof("Starting Inventory Management Flink Job with Kafka at: %s", kafkaBootstrapServers);
-            
+            LOG.info("Inventory Management Flink Job is disabled (runs separately)");
+            LOG.infof("Kafka configured at: %s", kafkaBootstrapServers);
+            // NOTE: Flink jobs are run separately during training, not embedded in Quarkus
+            // If you need to run the inventory job embedded, uncomment the dependency in build.gradle
+            /*
             // Run the inventory job in a separate daemon thread
             Thread inventoryThread = new Thread(() -> {
                 try {
                     // Set environment for the Flink job
                     System.setProperty("KAFKA_BOOTSTRAP_SERVERS", kafkaBootstrapServers);
-                    
+
                     // Start the inventory job
                     String[] args = new String[]{};
                     com.ververica.composable_job.flink.inventory.InventoryManagementJob.main(args);
@@ -65,11 +68,12 @@ public class FlinkJobsStartupService {
                     LOG.error("Inventory job execution failed", e);
                 }
             }, "inventory-flink-job");
-            
+
             inventoryThread.setDaemon(true);
             inventoryThread.start();
-            
+
             LOG.info("Inventory Management Job started successfully");
+            */
         } catch (Exception e) {
             LOG.error("Failed to start inventory job", e);
         }

@@ -158,7 +158,7 @@ const ProductsPage: React.FC = () => {
               }`}
             >
               {category}
-              {selectedCategory === category && allProducts.length > 0 && (
+              {selectedCategory === category && products.length > 0 && (
                 <span className="ml-2 text-xs opacity-75">
                   ({filteredProducts.length})
                 </span>
@@ -207,13 +207,13 @@ const ProductsPage: React.FC = () => {
           </div>
 
           <div className="text-sm text-gray-600">
-            Showing {filteredProducts.length} of {allProducts.length} products
+            Showing {filteredProducts.length} of {products.length} products
           </div>
         </div>
       </div>
 
       {/* Product Grid */}
-      {loading ? (
+      {isLoading ? (
         <div className="grid grid-cols-4 gap-6">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="card animate-pulse">
@@ -226,11 +226,38 @@ const ProductsPage: React.FC = () => {
             </div>
           ))}
         </div>
+      ) : products.length === 0 && !error ? (
+        <div className="card p-12 text-center bg-gradient-to-br from-blue-50 to-purple-50">
+          <div className="text-6xl mb-4">🏪</div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Shop is Empty</h2>
+          <p className="text-lg text-gray-700 mb-2">The shop starts empty in this event-driven architecture.</p>
+          <p className="text-gray-600 mb-6">Products will stream in as the Flink inventory job processes them.</p>
+
+          <div className="max-w-2xl mx-auto bg-white rounded-lg p-6 shadow-md mb-6">
+            <h3 className="text-xl font-semibold mb-3 text-gray-900">🚀 To populate products:</h3>
+            <div className="bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-md text-left">
+              ./flink-1-inventory-job.sh
+            </div>
+            <p className="text-sm text-gray-600 mt-3">
+              This will read initial products from <code className="bg-gray-100 px-2 py-1 rounded">data/initial-products.json</code>
+              and stream them into the shop via Kafka
+            </p>
+          </div>
+
+          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+            <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span>Watching for products...</span>
+          </div>
+
+          <button onClick={handleRefresh} className="mt-4 btn-primary">
+            Refresh
+          </button>
+        </div>
       ) : filteredProducts.length === 0 ? (
         <div className="card p-12 text-center">
-          <p className="text-gray-500">No products found</p>
+          <p className="text-gray-500">No products match your filters</p>
           {selectedCategory !== 'All' && (
-            <button 
+            <button
               onClick={() => setSelectedCategory('All')}
               className="mt-4 btn-primary"
             >

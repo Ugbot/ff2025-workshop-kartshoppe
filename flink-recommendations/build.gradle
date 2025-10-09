@@ -58,6 +58,7 @@ dependencies {
 
 application {
     mainClass = 'com.ververica.composable_job.flink.recommendations.BasketAnalysisJobRefactored'
+    applicationDefaultJvmArgs = ['--add-opens', 'java.base/java.util=ALL-UNNAMED']
 }
 
 shadowJar {

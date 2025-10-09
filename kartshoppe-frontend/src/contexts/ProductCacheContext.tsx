@@ -85,41 +85,55 @@ export const ProductCacheProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setError(null)
 
     try {
+      console.log('Fetching product inventory state from API...')
       // Fetch full inventory state from the new endpoint
       const response = await fetch('/api/ecommerce/inventory/state')
       if (!response.ok) {
-        throw new Error(`Failed to fetch inventory state: ${response.statusText}`)
+        throw new Error(`Failed to fetch inventory state: ${response.status} ${response.statusText}`)
       }
 
       const state = await response.json()
+      const productCount = state.totalProducts || (state.products?.length || 0)
       setProducts(state.products || [])
       setLastFetched(Date.now())
-      
-      console.log(`Hydrated cache with ${state.totalProducts} products from ${state.categories?.length || 0} categories`)
+
+      console.log(`✓ Hydrated cache with ${productCount} products from ${state.categories?.length || 0} categories`)
+
+      if (productCount === 0) {
+        console.log('ℹ️ Shop is empty - this is expected! Run the Flink inventory job to populate products')
+        console.log('   Command: ./flink-1-inventory-job.sh')
+        // Don't set error for empty shop - it's the expected initial state
+        setError(null)
+      }
     } catch (err) {
+      console.warn('Failed to fetch inventory state, trying fallback endpoint:', err)
       // Fallback to regular products endpoint
       try {
         const response = await fetch('/api/ecommerce/products')
         if (!response.ok) {
-          throw new Error(`Failed to fetch products: ${response.statusText}`)
+          throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`)
         }
         const data = await response.json()
         setProducts(data)
         setLastFetched(Date.now())
+        console.log(`✓ Loaded ${data.length} products from fallback endpoint`)
       } catch (fallbackErr) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch products')
-        console.error('Error fetching products:', err)
-        
+        const errorMsg = err instanceof Error ? err.message : 'Failed to fetch products'
+        setError(errorMsg)
+        console.error('❌ Error fetching products from both endpoints:', err, fallbackErr)
+
         // Try to use stale cache if available
         const cached = localStorage.getItem(CACHE_KEY)
         if (cached) {
           try {
             const { products: cachedProducts } = JSON.parse(cached)
             setProducts(cachedProducts)
-            console.log('Using stale cache with', cachedProducts.length, 'products')
+            console.log(`ℹ Using stale cache with ${cachedProducts.length} products`)
           } catch (cacheErr) {
             console.error('Failed to load stale cache:', cacheErr)
           }
+        } else {
+          console.log('No stale cache available')
         }
       }
     } finally {
@@ -165,29 +179,36 @@ export const ProductCacheProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Listen for WebSocket updates
   useEffect(() => {
     const handleWebSocketUpdate = (event: CustomEvent) => {
-      const { type, data } = event.detail
-      
-      if (type === 'inventory_update' && data.currentProduct) {
+      const message = event.detail
+
+      // Handle different event types from the backend
+      if (message.eventType === 'PRODUCT_UPDATE' && message.payload) {
+        const product = message.payload
         setProducts(prev => {
-          const index = prev.findIndex(p => p.productId === data.currentProduct.productId)
+          const index = prev.findIndex(p => p.productId === product.productId)
           if (index >= 0) {
             // Update existing product with new inventory data
             const updated = [...prev]
             updated[index] = {
               ...updated[index],
-              ...data.currentProduct,
-              inventory: data.currentInventory || data.currentProduct.inventory
+              ...product
             }
-            console.log(`Updated product ${data.currentProduct.productId} via WebSocket`)
+            console.log(`✓ Updated product ${product.productId} (${product.name}) - inventory: ${product.inventory}`)
             return updated
           } else {
             // Add new product from WebSocket
-            console.log(`Added new product ${data.currentProduct.productId} via WebSocket`)
-            return [...prev, data.currentProduct]
+            console.log(`✓ Added new product ${product.productId} (${product.name}) - inventory: ${product.inventory}`)
+            return [...prev, product]
           }
         })
-        
+
         // Update localStorage with the new data
+        setLastFetched(Date.now())
+      } else if (message.eventType === 'PRODUCT_CACHE_SYNC' && message.payload?.products) {
+        // Bulk sync from backend cache
+        const products = message.payload.products
+        console.log(`✓ Received cache sync with ${products.length} products`)
+        setProducts(products)
         setLastFetched(Date.now())
       }
     }

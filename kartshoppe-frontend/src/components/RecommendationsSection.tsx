@@ -18,10 +18,25 @@ const RecommendationsSection: React.FC = () => {
   }, [recommendations])
 
   const loadRecommendedProducts = async (productIds: string[]) => {
-    const products = await Promise.all(
-      productIds.slice(0, 4).map(id => ProductService.fetchProductById(id))
-    )
-    setRecommendedProducts(products.filter(p => p !== null) as Product[])
+    try {
+      console.log('Loading recommended products:', productIds)
+      const products = await Promise.all(
+        productIds.slice(0, 4).map(async (id) => {
+          try {
+            return await ProductService.fetchProductById(id)
+          } catch (error) {
+            console.warn(`Failed to fetch product ${id}:`, error)
+            return null
+          }
+        })
+      )
+      const validProducts = products.filter(p => p !== null) as Product[]
+      console.log(`Loaded ${validProducts.length} out of ${productIds.length} recommended products`)
+      setRecommendedProducts(validProducts)
+    } catch (error) {
+      console.error('Error loading recommended products:', error)
+      setRecommendedProducts([])
+    }
   }
 
   const handleProductClick = (product: Product) => {

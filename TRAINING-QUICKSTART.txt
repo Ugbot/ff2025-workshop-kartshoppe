@@ -1,0 +1,98 @@
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║     🎓  KartShoppe Training - Quick Start Reference  🎓        ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+
+📋 BEFORE TRAINING DAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Clone the repository:
+   git clone <repo-url>
+   cd Ververica-visual-demo-1
+
+2. Run one-time setup (installs Java 11, 17, verifies Docker):
+   ./0-setup-environment.sh
+
+3. Verify installation successful
+
+🚀 TRAINING DAY - PLATFORM STARTUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Start the core platform (NO Flink jobs):
+   ./start-training-platform.sh
+
+Access Points:
+   • KartShoppe App:      http://localhost:8080
+   • Flink Dashboard:     http://localhost:8081
+   • Redpanda Console:    http://localhost:8085
+   • Quarkus Dev UI:      http://localhost:8080/q/dev
+
+Expected: App works, but NO recommendations yet (this is normal!)
+
+📚 TRAINING MODULES (Run in Order)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Module 1: Inventory Management (90 min)
+   Concepts: Keyed state, Timers, Side outputs
+   Command:  ./flink-1-inventory-job.sh
+   Result:   Product inventory counts appear in UI
+
+Module 2: Basket Analysis (90 min)
+   Concepts: Stateful processing, Broadcast state, ML inference
+   Command:  ./flink-2-basket-analysis-job.sh
+   Result:   Recommendations appear when adding items to cart!
+
+Module 3: Hybrid Source (60 min)
+   Concepts: File → Kafka hybrid, Pre-training, Warm start
+   Command:  ./flink-3-hybrid-source-job.sh
+   Result:   Better recommendations from the start
+
+Module 4: Shopping Assistant (60 min)
+   Concepts: CEP, Session windows, AI chat
+   Command:  ./flink-4-shopping-assistant-job.sh
+   Result:   Chat panel appears, AI-powered assistance
+
+🛑 STOPPING EVERYTHING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ./stop-platform.sh
+
+🔧 TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Platform won't start:
+   • Check Docker is running: docker info
+   • Check Java version: java -version (need 17+)
+   • View logs: tail -f logs/quarkus.log
+
+Flink job fails:
+   • Switch to Java 11: sdk use java 11.0.25-tem
+   • Rebuild: ./gradlew clean build
+   • Check Flink logs in terminal
+
+Port conflicts:
+   • Kill port 8080: lsof -ti:8080 | xargs kill -9
+   • Kill port 8081: lsof -ti:8081 | xargs kill -9
+
+Clean slate:
+   • ./stop-platform.sh
+   • docker compose down -v
+   • ./start-training-platform.sh
+
+📖 FULL DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   Read: TRAINING-SETUP.md (comprehensive guide)
+   Read: README.md (full project documentation)
+
+💡 KEY POINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ✓ Platform starts WITHOUT Flink jobs
+   ✓ Add Flink jobs one module at a time
+   ✓ Each job enhances the app visibly
+   ✓ Monitor Flink dashboard to see jobs running
+   ✓ Use Redpanda Console to see Kafka messages
+
+Happy Learning! 🎉

@@ -1,0 +1,57 @@
+####
+# Multi-stage Dockerfile for Quarkus + Quinoa (React Frontend)
+# This builds everything inside Docker to avoid Java version conflicts
+####
+
+# Stage 1: Build the application with Gradle
+FROM gradle:8.5-jdk17 AS builder
+
+WORKDIR /build
+
+# Install Node.js 20 for Quinoa frontend build (required by Vite 7)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    node --version && npm --version
+
+# Copy Gradle wrapper and dependencies first (for caching)
+COPY gradle gradle
+COPY gradlew .
+COPY settings.gradle .
+COPY gradle.properties .
+
+# Copy only what we need (models + quarkus-api + frontend)
+COPY models ./models
+COPY quarkus-api ./quarkus-api
+COPY kartshoppe-frontend ./kartshoppe-frontend
+
+# Build frontend first (skip TypeScript checking for Docker build)
+WORKDIR /build/kartshoppe-frontend
+RUN npm install && npm run build:docker
+
+# Copy frontend dist into Quarkus resources (skip Quinoa for Docker builds)
+WORKDIR /build
+RUN mkdir -p quarkus-api/src/main/resources/META-INF/resources && \
+    cp -r kartshoppe-frontend/dist/* quarkus-api/src/main/resources/META-INF/resources/
+
+# Build models and Quarkus (Quinoa disabled for prod builds)
+RUN ./gradlew :models:build -x test --no-daemon && \
+    ./gradlew :quarkus-api:build -x test --no-daemon -Dquarkus.quinoa.enabled=false
+
+# Stage 2: Runtime image
+FROM registry.access.redhat.com/ubi8/openjdk-17:1.20
+
+ENV LANGUAGE='en_US:en'
+
+# Copy the built application from builder stage
+COPY --from=builder --chown=185 /build/quarkus-api/build/quarkus-app/lib/ /deployments/lib/
+COPY --from=builder --chown=185 /build/quarkus-api/build/quarkus-app/*.jar /deployments/
+COPY --from=builder --chown=185 /build/quarkus-api/build/quarkus-app/app/ /deployments/app/
+COPY --from=builder --chown=185 /build/quarkus-api/build/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 8080
+USER 185
+
+ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]

@@ -25,12 +25,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 @Startup
 public class ProductCacheService {
-    
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final Map<String, Product> productCache = new ConcurrentHashMap<>();
     private KafkaStreams streams;
     private ReadOnlyKeyValueStore<String, Product> productStore;
-    
+
     @Inject
     WebsocketEmitter websocketEmitter;
     
@@ -57,10 +57,7 @@ public class ProductCacheService {
     }
     
     private void loadInitialProducts() {
-        // Load initial product catalog
-        initializeDefaultProducts();
-        
-        // Sync with store if available
+        // Sync with KStreams store if available
         if (productStore != null) {
             try {
                 productStore.all().forEachRemaining(kv -> {
@@ -68,21 +65,30 @@ public class ProductCacheService {
                 });
                 Log.infof("Loaded %d products from KStreams cache", productCache.size());
             } catch (Exception e) {
-                Log.warn("Could not load from KStreams cache, using defaults", e);
+                Log.warn("Could not load from KStreams cache", e);
             }
+        }
+
+        // If cache is empty, that's expected! Waiting for Flink inventory job to populate products
+        if (productCache.isEmpty()) {
+            Log.info("📦 Product cache is empty - waiting for inventory Flink job to send products via Kafka");
+            Log.info("   Run: ./flink-1-inventory-job.sh to populate the shop");
         }
     }
     
     @Scheduled(every = "30s")
     public void syncCacheToClients() {
-        if (productCache.isEmpty()) return;
-        
+        if (productCache.isEmpty()) {
+            Log.debug("⏳ Product cache still empty - waiting for Flink inventory job to send products");
+            return;
+        }
+
         try {
             // Send cache sync event to all connected clients
             Map<String, Object> cacheSync = new HashMap<>();
             cacheSync.put("products", new ArrayList<>(productCache.values()));
             cacheSync.put("timestamp", System.currentTimeMillis());
-            
+
             ProcessingEvent<Map<String, Object>> syncEvent = new ProcessingEvent<>(
                 UUID.randomUUID().toString(),
                 System.currentTimeMillis(),
@@ -91,19 +97,23 @@ public class ProductCacheService {
                 ProcessingEvent.Type.PRODUCT_UPDATE,
                 cacheSync
             );
-            
+
             String json = MAPPER.writeValueAsString(syncEvent);
             websocketEmitter.emmit(json);
-            
-            Log.debugf("Synced %d products to clients", productCache.size());
+
+            Log.debugf("🔄 Synced %d products to clients via WebSocket", productCache.size());
         } catch (Exception e) {
             Log.error("Failed to sync cache to clients", e);
         }
     }
     
     public void updateProduct(Product product) {
+        boolean isNew = !productCache.containsKey(product.productId);
         productCache.put(product.productId, product);
-        
+
+        Log.infof("🔄 %s product %s (%s) - total products in cache: %d",
+            isNew ? "Added new" : "Updated", product.productId, product.name, productCache.size());
+
         // Send individual product update
         try {
             ProcessingEvent<Product> updateEvent = new ProcessingEvent<>(
@@ -114,8 +124,9 @@ public class ProductCacheService {
                 ProcessingEvent.Type.PRODUCT_UPDATE,
                 product
             );
-            
+
             websocketEmitter.emmit(MAPPER.writeValueAsString(updateEvent));
+            Log.debugf("→ Sent WebSocket update for product %s", product.productId);
         } catch (Exception e) {
             Log.error("Failed to send product update", e);
         }
@@ -159,9 +170,24 @@ public class ProductCacheService {
             .toList();
     }
     
+    /**
+     * DEPRECATED: Do not call this method in production!
+     *
+     * This method creates mock products for testing purposes only.
+     * In the event-driven architecture, products should come from the Flink inventory job
+     * via Kafka streams, not be generated at startup.
+     *
+     * To populate products correctly:
+     * 1. Ensure Quarkus and Kafka are running
+     * 2. Run: ./flink-1-inventory-job.sh
+     * 3. Watch products stream into the shop via KStreams
+     *
+     * This method is kept for local testing/development only.
+     */
+    @Deprecated
     private void initializeDefaultProducts() {
         String[] categories = {"Electronics", "Fashion", "Home & Garden", "Sports", "Books", "Toys", "Beauty", "Food & Grocery"};
-        String[] brands = {"TechPro", "StyleCraft", "HomeEssentials", "SportMax", "BookWorm", 
+        String[] brands = {"TechPro", "StyleCraft", "HomeEssentials", "SportMax", "BookWorm",
                           "ToyLand", "BeautyPlus", "GourmetKitchen", "EcoLife", "PremiumCo"};
         String[][] productNames = {
             {"Wireless Headphones", "Smart Watch", "Laptop", "Tablet", "Camera"},
@@ -170,37 +196,37 @@ public class ProductCacheService {
             {"Yoga Mat", "Dumbbells", "Bicycle", "Tennis Racket", "Swimming Goggles"},
             {"Bestseller Novel", "Cookbook", "Travel Guide", "Science Fiction", "Biography"}
         };
-        
+
         Random random = new Random();
         int productId = 1;
-        
+
         for (int cat = 0; cat < 5; cat++) {
             for (String productName : productNames[cat]) {
                 for (int variant = 1; variant <= 4; variant++) {
                     String id = "prod_" + productId++;
                     String category = categories[cat];
                     String brand = brands[random.nextInt(brands.length)];
-                    
+
                     Product product = new Product(
                         id,
                         brand + " " + productName + " " + (variant > 1 ? "v" + variant : "Pro"),
-                        "Experience premium quality with our " + productName.toLowerCase() + 
+                        "Experience premium quality with our " + productName.toLowerCase() +
                         ". Designed for modern lifestyle with cutting-edge features and exceptional build quality.",
                         50 + random.nextDouble() * 950,
                         category,
-                        String.format("https://source.unsplash.com/600x400/?%s,%s", 
+                        String.format("https://source.unsplash.com/600x400/?%s,%s",
                                     category.replace(" ", ""), productName.replace(" ", "")),
                         random.nextInt(100) + 1,
                         Arrays.asList("bestseller", "premium", category.toLowerCase().replace(" & ", "-")),
                         3.5 + random.nextDouble() * 1.5,
                         random.nextInt(1000) + 10
                     );
-                    
+
                     productCache.put(id, product);
                 }
             }
         }
-        
-        Log.infof("Initialized %d default products", productCache.size());
+
+        Log.warnf("⚠️ Initialized %d mock products (should only be used for testing!)", productCache.size());
     }
 }

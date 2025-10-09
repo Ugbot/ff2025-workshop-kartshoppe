@@ -21,17 +21,20 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const connectWebSocket = () => {
     const sessionId = sessionStorage.getItem('sessionId') || generateSessionId()
     const userId = sessionStorage.getItem('userId') || `user_${Date.now()}`
-    
+
     sessionStorage.setItem('sessionId', sessionId)
     sessionStorage.setItem('userId', userId)
 
+    // Use relative WebSocket URL to go through Vite proxy
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//localhost:8080/ecommerce/${sessionId}/${userId}`
-    
+    const host = window.location.host // Use current host for Vite dev server proxy
+    const wsUrl = `${protocol}//${host}/ecommerce/${sessionId}/${userId}`
+
+    console.log(`Connecting WebSocket to: ${wsUrl}`)
     ws.current = new WebSocket(wsUrl)
 
     ws.current.onopen = () => {
-      console.log('WebSocket connected')
+      console.log('✓ WebSocket connected successfully')
       setConnected(true)
       clearTimeout(reconnectTimeout.current)
     }
@@ -39,8 +42,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     ws.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
+        console.log('WebSocket message received:', data.eventType || data.type)
         setLastMessage(data)
-        
+
         // Dispatch WebSocket message event for ProductCacheContext
         window.dispatchEvent(new CustomEvent('websocket:message', { detail: data }))
         
@@ -79,11 +83,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     ws.current.onerror = (error) => {
-      console.error('WebSocket error:', error)
+      console.error('❌ WebSocket error:', error)
+      console.log('WebSocket readyState:', ws.current?.readyState)
     }
 
-    ws.current.onclose = () => {
+    ws.current.onclose = (event) => {
+      console.warn(`WebSocket closed (code: ${event.code}, reason: ${event.reason || 'none'})`)
       setConnected(false)
+      console.log('Reconnecting in 3 seconds...')
       reconnectTimeout.current = setTimeout(connectWebSocket, 3000)
     }
   }

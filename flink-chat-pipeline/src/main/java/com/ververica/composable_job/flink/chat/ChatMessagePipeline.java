@@ -94,7 +94,7 @@ public class ChatMessagePipeline {
         KafkaSource<RawChatMessage> source = KafkaUtils.Source.create(
                 broker,
                 inputTopic,
-                "evouraGroupId",
+                "chat-consumer-group",
                 new JsonDeserializationSchema<>(RawChatMessage.class)
         );
 

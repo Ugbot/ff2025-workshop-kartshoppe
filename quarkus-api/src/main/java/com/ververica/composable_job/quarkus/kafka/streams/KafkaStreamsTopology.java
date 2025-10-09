@@ -85,7 +85,10 @@ public class KafkaStreamsTopology {
                     try {
                         JsonNode node = MAPPER.readTree(value);
                         if (node.has("currentProduct") && !node.get("currentProduct").isNull()) {
-                            return MAPPER.treeToValue(node.get("currentProduct"), Product.class);
+                            Product product = MAPPER.treeToValue(node.get("currentProduct"), Product.class);
+                            Log.infof("📦 Received product from Kafka: %s (%s) - inventory: %d",
+                                product.productId, product.name, product.inventory);
+                            return product;
                         }
                         return null;
                     } catch (Exception e) {

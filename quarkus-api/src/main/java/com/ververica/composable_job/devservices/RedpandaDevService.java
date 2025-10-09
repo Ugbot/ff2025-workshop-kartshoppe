@@ -97,9 +97,12 @@ public class RedpandaDevService {
     
     private void startInventoryJob() {
         try {
-            LOG.info("Starting Inventory Management Flink Job...");
+            LOG.info("Inventory Management Flink Job is disabled (runs separately)");
+            // NOTE: Flink jobs are run separately during training, not embedded in Quarkus
+            // If you need to run the inventory job embedded, uncomment the dependency in build.gradle
+            /*
             String bootstrapServers = redpandaContainer.getBootstrapServers();
-            
+
             // Run the inventory job in a separate thread
             Thread inventoryThread = new Thread(() -> {
                 try {
@@ -111,8 +114,9 @@ public class RedpandaDevService {
             });
             inventoryThread.setDaemon(true);
             inventoryThread.start();
-            
+
             LOG.info("Inventory Management Job started");
+            */
         } catch (Exception e) {
             LOG.error("Failed to start inventory job", e);
         }

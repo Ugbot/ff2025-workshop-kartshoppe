@@ -27,7 +27,7 @@ docker compose up -d
 ```
 
 - Start the chat message pipeline:
-```
+```e
 ./gradlew flink-chat-pipeline:run
 ```
 

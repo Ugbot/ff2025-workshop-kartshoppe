@@ -26,7 +26,8 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-health'
 
     implementation project(':models')
-    implementation project(':flink-inventory')
+    // NOTE: Flink jobs are run separately during training, not embedded in Quarkus
+    // implementation project(':flink-inventory')
 
     testImplementation project(":test-common")
     testImplementation 'io.quarkus:quarkus-junit5'

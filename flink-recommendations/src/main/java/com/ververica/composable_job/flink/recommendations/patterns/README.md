@@ -6,7 +6,7 @@
 
 ## 📚 Pattern Learning Modules
 
-This directory contains **3 production-ready Flink patterns** designed for teaching and hands-on learning. Each pattern includes:
+This directory contains **4 production-ready Flink patterns** designed for teaching and hands-on learning. Each pattern includes:
 
 ✅ **Standalone runnable example** (`*Example.java`)
 ✅ **Comprehensive README** (600-1,400 lines with exercises, quizzes, solutions)
@@ -117,6 +117,49 @@ DataStream<Alert> alerts = matches.select(new AbandonmentSelectFunction());
 
 ---
 
+### Pattern 04: ML Classification with Hybrid Sources & Side Outputs 🤖
+
+**File:** [`04_ml_classification/MLClassificationExample.java`](04_ml_classification/MLClassificationExample.java)
+**README:** [`04_ml_classification/README.md`](04_ml_classification/README.md)
+
+**What you'll learn:**
+- Combine hybrid sources (bounded → unbounded) with ML inference
+- Implement logistic regression for binary classification in Flink
+- Use side outputs to route classified results to different pipelines
+- Bootstrap ML models with historical data before processing live streams
+- Performance considerations for real-time ML inference
+
+**Use cases:**
+- Fraud detection (classify transactions as fraud/legitimate)
+- Customer segmentation (high-value vs standard customers)
+- Quality control (defective vs good products)
+- Churn prediction (likely-to-churn vs stable customers)
+- Lead scoring (hot vs cold leads)
+
+**Key concepts:**
+```java
+// STEP 1: Create hybrid source (historical → live)
+HybridSource<String> source = HybridSource.builder(fileSource)
+    .addSource(kafkaSource)
+    .build();
+
+// STEP 2: Apply ML classification with side outputs
+SingleOutputStreamOperator<ClassifiedPurchase> standardStream = purchaseStream
+    .process(new MLClassificationProcessor());
+
+// STEP 3: Extract side outputs based on classification
+DataStream<ClassifiedPurchase> highValueStream =
+    standardStream.getSideOutput(HIGH_VALUE_TAG);
+
+// Mathematical model:
+// P(high_value) = σ(w₀ + w₁x₁ + w₂x₂ + w₃x₃)
+// where σ(z) = 1 / (1 + e^(-z))  [sigmoid function]
+```
+
+**Estimated time:** 90-120 minutes
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -147,6 +190,9 @@ docker compose up -d redpanda
 
 # Run Pattern 03: CEP Cart Abandonment
 ./gradlew :flink-recommendations:run -PmainClass=com.ververica.composable_job.flink.recommendations.patterns.cep.CEPCartAbandonmentExample
+
+# Run Pattern 04: ML Classification
+./gradlew :flink-recommendations:run -PmainClass=com.ververica.composable_job.flink.recommendations.patterns.ml_classification.MLClassificationExample
 ```
 
 ---

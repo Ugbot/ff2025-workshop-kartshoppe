@@ -197,12 +197,12 @@ const PersonalShopperChat: React.FC<PersonalShopperChatProps> = ({
 
   const addToCart = async (product: any) => {
     try {
-      await axios.post('/api/ecommerce/cart/add', {
-        sessionId,
+      await axios.post(`/api/ecommerce/cart/${sessionId}/add`, {
+        userId,
         productId: product.productId,
         quantity: 1
       })
-      
+
       EventTracker.trackEvent('ADD_TO_CART_FROM_CHAT', {
         productId: product.productId,
         sessionId

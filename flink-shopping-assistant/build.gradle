@@ -7,6 +7,10 @@ group = 'com.ververica.composable_job.flink-shopping-assistant'
 version = '1.0.0-SNAPSHOT'
 mainClassName = 'com.ververica.composable_job.flink.assistant.ShoppingAssistantJob'
 
+application {
+    applicationDefaultJvmArgs = ['--add-opens', 'java.base/java.util=ALL-UNNAMED']
+}
+
 apply from: "${rootDir}/flink-common/gradle/tasks/ext.gradle"
 
 repositories {

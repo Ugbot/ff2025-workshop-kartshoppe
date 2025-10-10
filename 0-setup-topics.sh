@@ -38,6 +38,7 @@ echo "🛒 Creating e-commerce topics..."
 create_topic "ecommerce-events" 3 1
 create_topic "ecommerce_processing_fanout" 3 1
 create_topic "shopping-cart-events" 3 1
+create_topic "order-events" 3 1
 
 # Recommendation and basket analysis topics
 echo "🎯 Creating recommendation topics..."

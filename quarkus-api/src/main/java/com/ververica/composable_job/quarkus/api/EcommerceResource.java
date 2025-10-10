@@ -3,15 +3,19 @@ package com.ververica.composable_job.quarkus.api;
 import com.ververica.composable_job.model.ProcessingEvent;
 import com.ververica.composable_job.model.ecommerce.*;
 import com.ververica.composable_job.quarkus.kafka.streams.ProductCacheService;
+import com.ververica.composable_job.quarkus.persistence.OrderEntity;
+import com.ververica.composable_job.quarkus.persistence.OrderItemEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +31,9 @@ public class EcommerceResource {
 
     @Channel("ecommerce_events")
     Emitter<String> eventEmitter;
+
+    @Channel("order_events")
+    Emitter<String> orderEventEmitter;
 
     @Inject
     EcommerceEventService eventService;
@@ -170,6 +177,7 @@ public class EcommerceResource {
 
     @POST
     @Path("/checkout")
+    @Transactional
     public Response checkout(CheckoutRequest request) {
         ShoppingCart cart = carts.get(request.sessionId);
         if (cart == null || cart.items.isEmpty()) {
@@ -177,7 +185,8 @@ public class EcommerceResource {
                 .entity("Cart is empty")
                 .build();
         }
-        
+
+        // Create Order model for Kafka & response
         Order order = new Order(
             UUID.randomUUID().toString(),
             request.userId,
@@ -188,21 +197,84 @@ public class EcommerceResource {
             5.99, // shipping
             System.currentTimeMillis()
         );
-        
+
         order.shippingAddress = request.shippingAddress;
         order.status = "CONFIRMED";
-        
+
+        // ========================================
+        // PHASE 1: Persist to PostgreSQL for CDC
+        // ========================================
+        try {
+            OrderEntity orderEntity = new OrderEntity(
+                order.orderId,
+                order.userId != null ? order.userId : "guest",
+                Instant.ofEpochMilli(order.timestamp),
+                order.status,
+                BigDecimal.valueOf(order.subtotal),
+                BigDecimal.valueOf(order.tax),
+                BigDecimal.valueOf(order.shipping),
+                BigDecimal.valueOf(order.total)
+            );
+
+            // Convert shipping address to JSON string
+            if (order.shippingAddress != null) {
+                orderEntity.shippingAddress = MAPPER.writeValueAsString(order.shippingAddress);
+            }
+            orderEntity.paymentMethod = request.paymentMethod;
+
+            // Persist order items
+            for (CartItem item : cart.items) {
+                OrderItemEntity itemEntity = new OrderItemEntity(
+                    item.productId,
+                    item.quantity,
+                    BigDecimal.valueOf(item.price),
+                    BigDecimal.ZERO,
+                    BigDecimal.valueOf(item.price * item.quantity)
+                );
+                orderEntity.addItem(itemEntity);
+            }
+
+            // Persist to PostgreSQL (will trigger CDC)
+            orderEntity.persist();
+
+            Log.infof("✅ Order %s persisted to PostgreSQL (CDC will detect this)", order.orderId);
+
+        } catch (Exception e) {
+            Log.errorf("❌ Failed to persist order to PostgreSQL: %s", e.getMessage(), e);
+            return Response.serverError().entity("Failed to process order").build();
+        }
+
+        // Store in memory for backward compatibility
         orders.put(order.orderId, order);
         carts.remove(request.sessionId); // Clear cart after order
-        
-        // Send order event
+
+        // Send order event to Kafka for immediate feedback (optional - CDC will also send)
         try {
             ProcessingEvent<Order> orderEvent = ProcessingEvent.ofOrder(order);
             eventEmitter.send(MAPPER.writeValueAsString(orderEvent));
         } catch (Exception e) {
             Log.error("Failed to send order event", e);
         }
-        
+
+        // ========================================
+        // Publish Order Items for Inventory Deduction
+        // ========================================
+        try {
+            for (CartItem item : cart.items) {
+                Map<String, Object> orderItemEvent = new HashMap<>();
+                orderItemEvent.put("orderId", order.orderId);
+                orderItemEvent.put("productId", item.productId);
+                orderItemEvent.put("quantity", item.quantity);
+                orderItemEvent.put("timestamp", System.currentTimeMillis());
+
+                String json = MAPPER.writeValueAsString(orderItemEvent);
+                orderEventEmitter.send(json);
+                Log.infof("📦 Published order item for inventory deduction: %s x%d", item.productId, item.quantity);
+            }
+        } catch (Exception e) {
+            Log.error("Failed to publish order items", e);
+        }
+
         return Response.ok(order).build();
     }
 

@@ -180,22 +180,21 @@ public class BasketAnalysisJob {
             
             // Process event
             switch (event.eventType) {
-                case "ADD_TO_CART":
+                case ADD_TO_CART:
                     BasketItem item = new BasketItem(
                         event.productId,
                         event.productName,
-                        event.category,
-                        event.price,
+                        null,  // category not available in event
+                        null,  // price not available in event
                         1,
                         System.currentTimeMillis()
                     );
                     itemsState.add(item);
                     basket.itemCount++;
-                    basket.totalValue += event.price != null ? event.price : 0;
                     LOG.debug("Added {} to basket {}", event.productId, event.sessionId);
                     break;
-                    
-                case "REMOVE_FROM_CART":
+
+                case REMOVE_FROM_CART:
                     // Remove item from basket
                     List<BasketItem> items = new ArrayList<>();
                     itemsState.get().forEach(items::add);
@@ -210,9 +209,9 @@ public class BasketAnalysisJob {
                     });
                     basket.itemCount = items.size();
                     break;
-                    
-                case "PURCHASE":
-                case "CHECKOUT":
+
+                case ORDER_PLACED:
+                case CHECKOUT_COMPLETE:
                     // Basket completed - emit pattern
                     List<BasketItem> purchasedItems = new ArrayList<>();
                     itemsState.get().forEach(purchasedItems::add);
@@ -236,8 +235,8 @@ public class BasketAnalysisJob {
                         return;
                     }
                     break;
-                    
-                case "VIEW_PRODUCT":
+
+                case PRODUCT_VIEW:
                     basket.viewedProducts.add(event.productId);
                     if (basket.viewedProducts.size() > 50) {
                         basket.viewedProducts.remove(0);
@@ -275,20 +274,16 @@ public class BasketAnalysisJob {
         
         private ListState<BasketCompletion> historicalBasketsState;
         private MapState<String, Integer> itemFrequencyState;
-        private MapState<String, Map<String, Integer>> itemPairsState;
         private ValueState<Integer> basketCountState;
-        
+
         @Override
         public void open(Configuration parameters) throws Exception {
             historicalBasketsState = getRuntimeContext().getListState(
                 new ListStateDescriptor<>("historical-baskets", BasketCompletion.class));
-            
+
             itemFrequencyState = getRuntimeContext().getMapState(
                 new MapStateDescriptor<>("item-frequency", String.class, Integer.class));
-            
-            itemPairsState = getRuntimeContext().getMapState(
-                new MapStateDescriptor<>("item-pairs", String.class, Map.class));
-            
+
             basketCountState = getRuntimeContext().getState(
                 new ValueStateDescriptor<>("basket-count", Integer.class, 0));
         }
@@ -490,7 +485,7 @@ public class BasketAnalysisJob {
             
             // Update basket based on event
             switch (event.eventType) {
-                case "ADD_TO_CART":
+                case ADD_TO_CART:
                     basket.products.add(event.productId);
                     
                     // Generate recommendations based on current basket
@@ -512,8 +507,8 @@ public class BasketAnalysisJob {
                         LOG.debug("Generated recommendations for {}: {}", event.sessionId, recommendations);
                     }
                     break;
-                    
-                case "VIEW_PRODUCT":
+
+                case PRODUCT_VIEW:
                     basket.viewHistory.add(event.productId);
                     
                     // Context-based recommendations
@@ -533,8 +528,8 @@ public class BasketAnalysisJob {
                         out.collect(rec);
                     }
                     break;
-                    
-                case "PURCHASE":
+
+                case ORDER_PLACED:
                     // Clear basket after purchase
                     basketState.clear();
                     return;

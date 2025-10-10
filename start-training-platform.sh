@@ -84,6 +84,33 @@ echo -e "${BLUE}Step 2/5: Starting Infrastructure${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
+echo -e "${YELLOW}Starting PostgreSQL (for order persistence & CDC)...${NC}"
+docker compose up -d postgres
+
+# Wait for PostgreSQL to be healthy
+echo -e "${YELLOW}Waiting for PostgreSQL to be healthy...${NC}"
+timeout 30 bash -c 'until docker compose ps postgres | grep -q "healthy"; do sleep 2; echo -n "."; done' || {
+    echo -e "\n${RED}✗ PostgreSQL failed to start${NC}"
+    exit 1
+}
+echo ""
+echo -e "${GREEN}✓${NC} PostgreSQL is healthy"
+
+# Initialize PostgreSQL schema (only if not already initialized)
+echo -e "${YELLOW}Initializing PostgreSQL schema...${NC}"
+if docker exec postgres-cdc psql -U postgres -d ecommerce -c "SELECT 1 FROM orders LIMIT 1;" > /dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC} PostgreSQL schema already initialized"
+else
+    echo -e "${YELLOW}  Running postgres-init.sql via docker exec...${NC}"
+    cat postgres-init.sql | docker exec -i postgres-cdc psql -U postgres -d ecommerce > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓${NC} PostgreSQL schema initialized successfully"
+    else
+        echo -e "${RED}✗ Failed to initialize PostgreSQL schema${NC}"
+        exit 1
+    fi
+fi
+
 echo -e "${YELLOW}Starting Redpanda (Kafka)...${NC}"
 docker compose up -d redpanda redpanda-console
 
@@ -210,16 +237,18 @@ echo -e "  ${GREEN}▸${NC} Redpanda Console:     ${GREEN}http://localhost:8085$
 echo ""
 
 echo -e "${CYAN}${BOLD}📊 Services Running:${NC}"
+echo -e "  ${GREEN}✓${NC} PostgreSQL:           Port 5432"
 echo -e "  ${GREEN}✓${NC} Redpanda (Kafka):     Port 19092"
 echo -e "  ${GREEN}✓${NC} Quarkus + Frontend:   Port 8081"
 echo -e "  ${GREEN}✓${NC} Redpanda Console:     Port 8085"
 echo ""
 
 echo -e "${CYAN}${BOLD}🎓 Training Modules (Run Separately):${NC}"
-echo -e "  ${YELLOW}▸${NC} Module 1 - Inventory:      ${GREEN}./flink-1-inventory-job.sh${NC}"
-echo -e "  ${YELLOW}▸${NC} Module 2 - Basket Analysis: ${GREEN}./flink-2-basket-analysis-job.sh${NC}"
-echo -e "  ${YELLOW}▸${NC} Module 3 - Hybrid Source:   ${GREEN}./flink-3-hybrid-source-job.sh${NC}"
-echo -e "  ${YELLOW}▸${NC} Module 4 - AI Assistant:    ${GREEN}./flink-4-shopping-assistant-job.sh${NC}"
+echo -e "  ${YELLOW}▸${NC} Module 1 - Inventory:           ${GREEN}./flink-1-inventory-job.sh${NC}"
+echo -e "  ${YELLOW}▸${NC} Module 1b - Inventory + Orders: ${GREEN}./flink-1b-inventory-with-orders-job.sh${NC}"
+echo -e "  ${YELLOW}▸${NC} Module 2 - Order CDC:           ${GREEN}./flink-2-order-cdc-job.sh${NC}"
+echo -e "  ${YELLOW}▸${NC} Module 3 - Basket Analysis:     ${GREEN}./flink-3-basket-analysis-job.sh${NC}"
+echo -e "  ${YELLOW}▸${NC} Module 4 - AI Assistant:        ${GREEN}./flink-4-shopping-assistant-job.sh${NC}"
 echo ""
 
 echo -e "${BLUE}📁 Logs:${NC}"

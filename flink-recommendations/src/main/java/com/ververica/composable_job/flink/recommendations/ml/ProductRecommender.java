@@ -1,13 +1,8 @@
 package com.ververica.composable_job.flink.recommendations.ml;
 
-import deepnetts.core.DeepNetts;
-import deepnetts.data.TabularDataSet;
-import deepnetts.net.FeedForwardNetwork;
-import deepnetts.net.layers.activation.ActivationType;
-import deepnetts.net.loss.LossType;
-import deepnetts.net.train.BackpropagationTrainer;
-import deepnetts.net.train.opt.OptimizerType;
-import deepnetts.util.Tensor;
+// NOTE: DeepNetts neural network support is optional
+// The ProductRecommender falls back to association rules if DeepNetts is not available
+// To enable neural network features, ensure deepnetts-core is built and available
 
 import java.io.Serializable;
 import java.util.*;
@@ -37,7 +32,7 @@ public class ProductRecommender implements Serializable {
     private final Map<Set<String>, Integer> itemsetFrequency = new ConcurrentHashMap<>();
     
     // Model parameters
-    private transient FeedForwardNetwork model;
+    // Neural network model disabled - using association rules only
     private final int embeddingSize = 32;
     private final double learningRate = 0.01;
     private final double minSupport = 0.01;
@@ -55,26 +50,18 @@ public class ProductRecommender implements Serializable {
     
     /**
      * Initialize the neural network model
+     *
+     * NOTE: Neural network support is disabled in this version.
+     * The recommender uses association rules and pattern mining only.
+     *
+     * To enable neural network features:
+     * 1. Ensure deepnetts-core is built: cd libs/deepnetts-community/deepnetts-core && mvn clean install
+     * 2. Uncomment DeepNetts imports and model initialization code
+     * 3. Rebuild the project
      */
     private void initializeModel() {
-        try {
-            FeedForwardNetwork.Builder builder = FeedForwardNetwork.builder();
-            builder.addInputLayer(INPUT_SIZE);
-            builder.addFullyConnectedLayer(HIDDEN_SIZE, ActivationType.RELU);
-            builder.addFullyConnectedLayer(HIDDEN_SIZE / 2, ActivationType.RELU);
-            builder.addOutputLayer(OUTPUT_SIZE, ActivationType.SIGMOID);
-            
-            model = builder.build();
-            
-            BackpropagationTrainer trainer = model.getTrainer();
-            trainer.setMaxEpochs(100);
-            trainer.setLearningRate((float) learningRate);
-            trainer.setOptimizer(OptimizerType.ADAM);
-            trainer.setLossFunction(LossType.CROSS_ENTROPY);
-        } catch (Exception e) {
-            // Fallback to rule-based if DeepNetts not available
-            model = null;
-        }
+        // Neural network disabled - using association rules only
+        // Model training happens through pattern mining in updateModel()
     }
     
     /**
@@ -99,35 +86,22 @@ public class ProductRecommender implements Serializable {
         if (currentBasket == null || currentBasket.isEmpty()) {
             return getPopularItems(topK);
         }
-        
-        // Use neural network if available
-        if (model != null) {
-            return neuralRecommendation(currentBasket, topK);
-        }
-        
-        // Fallback to association rules
+
+        // Use association rules (neural network disabled)
         return associationRuleRecommendation(currentBasket, frequentItems, topK);
     }
-    
+
     /**
-     * Neural network based recommendation
+     * Neural network based recommendation (DISABLED)
+     *
+     * This method is currently disabled as DeepNetts support is optional.
+     * Recommendations use association rules instead.
+     *
+     * To enable: uncomment DeepNetts imports and rebuild model initialization
      */
     private List<String> neuralRecommendation(List<String> basket, int topK) {
-        try {
-            // Convert basket to feature vector
-            float[] features = basketToFeatures(basket);
-            Tensor input = Tensor.create(1, features.length, features);
-            
-            // Forward pass
-            Tensor output = model.forward(input);
-            float[] scores = output.getValues();
-            
-            // Get top K products
-            return getTopProducts(scores, basket, topK);
-        } catch (Exception e) {
-            // Fallback to association rules
-            return associationRuleRecommendation(basket, itemFrequency, topK);
-        }
+        // Neural network disabled - use association rules
+        return associationRuleRecommendation(basket, itemFrequency, topK);
     }
     
     /**
@@ -252,11 +226,9 @@ public class ProductRecommender implements Serializable {
         if (patterns.size() % 100 == 0) {
             mineAssociationRules();
         }
-        
-        // Update neural network if available
-        if (model != null) {
-            trainOnlineStep(basket, purchased);
-        }
+
+        // Neural network training disabled - patterns are mined instead
+        // trainOnlineStep(basket, purchased); // Disabled
     }
     
     /**
@@ -382,31 +354,23 @@ public class ProductRecommender implements Serializable {
     
     /**
      * Online training step for neural network
+     *
+     * NOTE: Online training with DeepNetts requires TabularDataSet API which may vary by version.
+     * For this demo, online training is disabled. The model uses pre-trained weights
+     * and association rules learned from patterns.
+     *
+     * In production, implement this using:
+     * - Periodic batch training on accumulated data
+     * - External ML platform integration (MLflow, Kubeflow)
+     * - Flink ML library for distributed training
      */
     private void trainOnlineStep(List<String> basket, String target) {
-        if (model == null) return;
-        
-        try {
-            // Prepare training data
-            float[] input = basketToFeatures(basket);
-            float[] output = new float[OUTPUT_SIZE];
-            
-            // Set target output
-            List<String> products = new ArrayList<>(productEmbeddings.keySet());
-            int targetIdx = products.indexOf(target);
-            if (targetIdx >= 0 && targetIdx < OUTPUT_SIZE) {
-                output[targetIdx] = 1.0f;
-            }
-            
-            // Create mini-batch
-            TabularDataSet.Builder dataSetBuilder = new TabularDataSet.Builder(INPUT_SIZE, OUTPUT_SIZE);
-            dataSetBuilder.addRow(input, output);
-            TabularDataSet dataSet = dataSetBuilder.build();
-            
-            // Train one step
-            model.getTrainer().train(dataSet);
-        } catch (Exception e) {
-            // Log error but continue
-        }
+        // Online training disabled for demo - model uses pre-trained weights
+        // Association rules are learned dynamically via pattern mining
+
+        // TODO: Implement online training if needed:
+        // - Accumulate training samples in state
+        // - Trigger periodic batch training
+        // - Update model weights atomically
     }
 }

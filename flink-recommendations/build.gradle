@@ -27,6 +27,11 @@ dependencies {
     implementation "org.apache.flink:flink-connector-base:${flinkVersion}"
     implementation "org.apache.flink:flink-cep:${flinkVersion}"
 
+    // Flink Table API (required for Paimon integration and Table operations)
+    implementation "org.apache.flink:flink-table-api-java-bridge:${flinkVersion}"
+    implementation "org.apache.flink:flink-table-planner-loader:${flinkVersion}"
+    implementation "org.apache.flink:flink-table-runtime:${flinkVersion}"
+
     // Apache Paimon
     implementation "org.apache.paimon:paimon-flink-1.20:0.9.0"
     implementation "org.apache.paimon:paimon-flink-common:0.9.0"

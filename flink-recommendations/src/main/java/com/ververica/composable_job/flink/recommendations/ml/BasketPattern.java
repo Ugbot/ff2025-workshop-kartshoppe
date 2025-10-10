@@ -31,7 +31,22 @@ public class BasketPattern implements Serializable {
         this.confidence = confidence;
         this.timestamp = System.currentTimeMillis();
     }
-    
+
+    // Full constructor for creating patterns with all fields
+    public BasketPattern(List<String> antecedents, String consequent, double support,
+                        double confidence, double lift, String category,
+                        String userId, String sessionId, long timestamp) {
+        this.antecedents = antecedents;
+        this.consequent = consequent;
+        this.support = support;
+        this.confidence = confidence;
+        this.lift = lift;
+        this.category = category;
+        this.userId = userId;
+        this.sessionId = sessionId;
+        this.timestamp = timestamp;
+    }
+
     // Getters and setters
     public List<String> getAntecedents() {
         return antecedents;

@@ -1,6 +1,7 @@
 package com.ververica.composable_job.flink.recommendations.patterns.cep;
 
 import com.ververica.composable_job.model.ecommerce.EcommerceEvent;
+import com.ververica.composable_job.model.ecommerce.EcommerceEventType;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.cep.CEP;
@@ -58,14 +59,14 @@ import java.util.Map;
  * Pattern<Event, ?> pattern = Pattern.<Event>begin("add-to-cart")
  *     .where(new SimpleCondition<Event>() {
  *         public boolean filter(Event event) {
- *             return event.eventType.equals("ADD_TO_CART");
+ *             return event.eventType == EcommerceEventType.ADD_TO_CART;
  *         }
  *     })
  *     .oneOrMore()  // One or more items added
  *     .next("no-purchase")  // Followed by...
  *     .where(new SimpleCondition<Event>() {
  *         public boolean filter(Event event) {
- *             return event.eventType.equals("PURCHASE");
+ *             return event.eventType == EcommerceEventType.ORDER_PLACED;
  *         }
  *     })
  *     .times(0)  // ZERO purchases (negative match!)
@@ -122,7 +123,7 @@ public class CEPCartAbandonmentExample {
             .where(new SimpleCondition<EcommerceEvent>() {
                 @Override
                 public boolean filter(EcommerceEvent event) {
-                    return event.eventType.equals("ADD_TO_CART");
+                    return event.eventType == EcommerceEventType.ADD_TO_CART;
                 }
             })
             .oneOrMore()  // At least one item added to cart
@@ -131,7 +132,7 @@ public class CEPCartAbandonmentExample {
                 @Override
                 public boolean filter(EcommerceEvent event) {
                     // Accept any event that's NOT a purchase
-                    return !event.eventType.equals("PURCHASE");
+                    return event.eventType != EcommerceEventType.ORDER_PLACED;
                 }
             })
             .oneOrMore()
@@ -162,21 +163,21 @@ public class CEPCartAbandonmentExample {
             .where(new SimpleCondition<EcommerceEvent>() {
                 @Override
                 public boolean filter(EcommerceEvent event) {
-                    return event.eventType.equals("VIEW_PRODUCT");
+                    return event.eventType == EcommerceEventType.PRODUCT_VIEW;
                 }
             })
             .next("add")  // Strict contiguity (no events between)
             .where(new SimpleCondition<EcommerceEvent>() {
                 @Override
                 public boolean filter(EcommerceEvent event) {
-                    return event.eventType.equals("ADD_TO_CART");
+                    return event.eventType == EcommerceEventType.ADD_TO_CART;
                 }
             })
             .next("purchase")
             .where(new SimpleCondition<EcommerceEvent>() {
                 @Override
                 public boolean filter(EcommerceEvent event) {
-                    return event.eventType.equals("PURCHASE");
+                    return event.eventType == EcommerceEventType.ORDER_PLACED;
                 }
             })
             .within(Time.minutes(10));  // Within 10 minutes
@@ -203,12 +204,10 @@ public class CEPCartAbandonmentExample {
             .where(new SimpleCondition<EcommerceEvent>() {
                 @Override
                 public boolean filter(EcommerceEvent event) {
-                    return event.eventType.equals("VIEW_PRODUCT");
+                    return event.eventType == EcommerceEventType.PRODUCT_VIEW;
                 }
             })
-            .times(3)  // Exactly 3 or more views
-            .or()
-            .times(3).or().times(4).or().times(5).or().times(6).or().times(7)  // Accept 3+ views
+            .times(3, 10)  // Between 3 and 10 views
             .within(Time.minutes(20));
 
         PatternStream<EcommerceEvent> repeatedBrowsingPatternStream = CEP.pattern(
@@ -398,10 +397,10 @@ public class CEPCartAbandonmentExample {
         LOG.info("\n📋 SCENARIO 1: Cart Abandonment");
         LOG.info("   User adds items but doesn't purchase");
 
-        events.add(createEvent("session-001", "user-001", "VIEW_PRODUCT", "LAPTOP_001", baseTime));
-        events.add(createEvent("session-001", "user-001", "ADD_TO_CART", "LAPTOP_001", baseTime + 2000));
-        events.add(createEvent("session-001", "user-001", "VIEW_PRODUCT", "MOUSE_001", baseTime + 5000));
-        events.add(createEvent("session-001", "user-001", "ADD_TO_CART", "MOUSE_001", baseTime + 7000));
+        events.add(createEvent("session-001", "user-001", EcommerceEventType.PRODUCT_VIEW, "LAPTOP_001", baseTime));
+        events.add(createEvent("session-001", "user-001", EcommerceEventType.ADD_TO_CART, "LAPTOP_001", baseTime + 2000));
+        events.add(createEvent("session-001", "user-001", EcommerceEventType.PRODUCT_VIEW, "MOUSE_001", baseTime + 5000));
+        events.add(createEvent("session-001", "user-001", EcommerceEventType.ADD_TO_CART, "MOUSE_001", baseTime + 7000));
         // No purchase → Cart abandoned!
 
         // ========================================
@@ -410,9 +409,9 @@ public class CEPCartAbandonmentExample {
         LOG.info("\n📋 SCENARIO 2: Quick Purchase");
         LOG.info("   User views, adds, and purchases quickly");
 
-        events.add(createEvent("session-002", "user-002", "VIEW_PRODUCT", "PHONE_001", baseTime + 10000));
-        events.add(createEvent("session-002", "user-002", "ADD_TO_CART", "PHONE_001", baseTime + 12000));
-        events.add(createEvent("session-002", "user-002", "PURCHASE", "PHONE_001", baseTime + 15000));
+        events.add(createEvent("session-002", "user-002", EcommerceEventType.PRODUCT_VIEW, "PHONE_001", baseTime + 10000));
+        events.add(createEvent("session-002", "user-002", EcommerceEventType.ADD_TO_CART, "PHONE_001", baseTime + 12000));
+        events.add(createEvent("session-002", "user-002", EcommerceEventType.ORDER_PLACED, "PHONE_001", baseTime + 15000));
         // View → Add → Purchase within 5 seconds!
 
         // ========================================
@@ -421,11 +420,11 @@ public class CEPCartAbandonmentExample {
         LOG.info("\n📋 SCENARIO 3: Repeated Browsing");
         LOG.info("   User views many products but doesn't add to cart");
 
-        events.add(createEvent("session-003", "user-003", "VIEW_PRODUCT", "KEYBOARD_001", baseTime + 20000));
-        events.add(createEvent("session-003", "user-003", "VIEW_PRODUCT", "MONITOR_001", baseTime + 22000));
-        events.add(createEvent("session-003", "user-003", "VIEW_PRODUCT", "HEADPHONES_001", baseTime + 24000));
-        events.add(createEvent("session-003", "user-003", "VIEW_PRODUCT", "WEBCAM_001", baseTime + 26000));
-        events.add(createEvent("session-003", "user-003", "VIEW_PRODUCT", "MOUSE_002", baseTime + 28000));
+        events.add(createEvent("session-003", "user-003", EcommerceEventType.PRODUCT_VIEW, "KEYBOARD_001", baseTime + 20000));
+        events.add(createEvent("session-003", "user-003", EcommerceEventType.PRODUCT_VIEW, "MONITOR_001", baseTime + 22000));
+        events.add(createEvent("session-003", "user-003", EcommerceEventType.PRODUCT_VIEW, "HEADPHONES_001", baseTime + 24000));
+        events.add(createEvent("session-003", "user-003", EcommerceEventType.PRODUCT_VIEW, "WEBCAM_001", baseTime + 26000));
+        events.add(createEvent("session-003", "user-003", EcommerceEventType.PRODUCT_VIEW, "MOUSE_002", baseTime + 28000));
         // 5 views, no add to cart → Window shopping
 
         // ========================================
@@ -434,17 +433,17 @@ public class CEPCartAbandonmentExample {
         LOG.info("\n📋 SCENARIO 4: Mixed Behavior");
         LOG.info("   User adds to cart, then purchases (successful)");
 
-        events.add(createEvent("session-004", "user-004", "VIEW_PRODUCT", "LAPTOP_002", baseTime + 30000));
-        events.add(createEvent("session-004", "user-004", "ADD_TO_CART", "LAPTOP_002", baseTime + 32000));
-        events.add(createEvent("session-004", "user-004", "VIEW_PRODUCT", "LAPTOP_CASE_001", baseTime + 35000));
-        events.add(createEvent("session-004", "user-004", "ADD_TO_CART", "LAPTOP_CASE_001", baseTime + 37000));
-        events.add(createEvent("session-004", "user-004", "PURCHASE", "LAPTOP_002", baseTime + 40000));
+        events.add(createEvent("session-004", "user-004", EcommerceEventType.PRODUCT_VIEW, "LAPTOP_002", baseTime + 30000));
+        events.add(createEvent("session-004", "user-004", EcommerceEventType.ADD_TO_CART, "LAPTOP_002", baseTime + 32000));
+        events.add(createEvent("session-004", "user-004", EcommerceEventType.PRODUCT_VIEW, "LAPTOP_CASE_001", baseTime + 35000));
+        events.add(createEvent("session-004", "user-004", EcommerceEventType.ADD_TO_CART, "LAPTOP_CASE_001", baseTime + 37000));
+        events.add(createEvent("session-004", "user-004", EcommerceEventType.ORDER_PLACED, "LAPTOP_002", baseTime + 40000));
         // Purchased → No abandonment
 
         return env.fromCollection(events);
     }
 
-    private static EcommerceEvent createEvent(String sessionId, String userId, String eventType, String productId, long timestamp) {
+    private static EcommerceEvent createEvent(String sessionId, String userId, EcommerceEventType eventType, String productId, long timestamp) {
         EcommerceEvent event = new EcommerceEvent();
         event.sessionId = sessionId;
         event.userId = userId;

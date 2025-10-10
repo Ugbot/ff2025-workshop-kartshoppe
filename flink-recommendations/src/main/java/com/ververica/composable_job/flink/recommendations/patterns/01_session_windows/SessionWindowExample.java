@@ -1,6 +1,7 @@
 package com.ververica.composable_job.flink.recommendations.patterns.session_windows;
 
 import com.ververica.composable_job.model.ecommerce.EcommerceEvent;
+import com.ververica.composable_job.model.ecommerce.EcommerceEventType;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -141,16 +142,17 @@ public class SessionWindowExample {
                 uniqueProducts.add(event.productId);
 
                 switch (event.eventType) {
-                    case "VIEW_PRODUCT":
+                    case PRODUCT_VIEW:
                         session.viewedProducts.add(event.productId);
                         viewCount++;
                         break;
-                    case "ADD_TO_CART":
+                    case ADD_TO_CART:
                         session.addedToCart.add(event.productId);
                         addCount++;
                         break;
-                    case "PURCHASE":
-                    case "CHECKOUT":
+                    case ORDER_PLACED:
+                    case CHECKOUT_COMPLETE:
+                    case PAYMENT_PROCESSED:
                         hasPurchase = true;
                         session.completedPurchase = true;
                         break;
@@ -215,28 +217,28 @@ public class SessionWindowExample {
         List<EcommerceEvent> events = new ArrayList<>();
 
         // SESSION 1: Browser (views only, no purchase)
-        events.add(createEvent("session-001", "user-001", "VIEW_PRODUCT", "LAPTOP_001", baseTime));
-        events.add(createEvent("session-001", "user-001", "VIEW_PRODUCT", "MOUSE_001", baseTime + 5 * 60 * 1000));
-        events.add(createEvent("session-001", "user-001", "VIEW_PRODUCT", "KEYBOARD_001", baseTime + 10 * 60 * 1000));
-        events.add(createEvent("session-001", "user-001", "VIEW_PRODUCT", "MONITOR_001", baseTime + 12 * 60 * 1000));
+        events.add(createEvent("session-001", "user-001", EcommerceEventType.PRODUCT_VIEW, "LAPTOP_001", baseTime));
+        events.add(createEvent("session-001", "user-001", EcommerceEventType.PRODUCT_VIEW, "MOUSE_001", baseTime + 5 * 60 * 1000));
+        events.add(createEvent("session-001", "user-001", EcommerceEventType.PRODUCT_VIEW, "KEYBOARD_001", baseTime + 10 * 60 * 1000));
+        events.add(createEvent("session-001", "user-001", EcommerceEventType.PRODUCT_VIEW, "MONITOR_001", baseTime + 12 * 60 * 1000));
         // Session gap > 30 min → session ends
 
         // SESSION 2: Abandoned cart
-        events.add(createEvent("session-002", "user-002", "VIEW_PRODUCT", "PHONE_001", baseTime + 60 * 60 * 1000));
-        events.add(createEvent("session-002", "user-002", "VIEW_PRODUCT", "PHONE_CASE_001", baseTime + 62 * 60 * 1000));
-        events.add(createEvent("session-002", "user-002", "ADD_TO_CART", "PHONE_001", baseTime + 65 * 60 * 1000));
-        events.add(createEvent("session-002", "user-002", "ADD_TO_CART", "PHONE_CASE_001", baseTime + 66 * 60 * 1000));
+        events.add(createEvent("session-002", "user-002", EcommerceEventType.PRODUCT_VIEW, "PHONE_001", baseTime + 60 * 60 * 1000));
+        events.add(createEvent("session-002", "user-002", EcommerceEventType.PRODUCT_VIEW, "PHONE_CASE_001", baseTime + 62 * 60 * 1000));
+        events.add(createEvent("session-002", "user-002", EcommerceEventType.ADD_TO_CART, "PHONE_001", baseTime + 65 * 60 * 1000));
+        events.add(createEvent("session-002", "user-002", EcommerceEventType.ADD_TO_CART, "PHONE_CASE_001", baseTime + 66 * 60 * 1000));
         // No purchase → abandoned cart
 
         // SESSION 3: Successful purchase
-        events.add(createEvent("session-003", "user-003", "VIEW_PRODUCT", "HEADPHONES_001", baseTime + 120 * 60 * 1000));
-        events.add(createEvent("session-003", "user-003", "ADD_TO_CART", "HEADPHONES_001", baseTime + 122 * 60 * 1000));
-        events.add(createEvent("session-003", "user-003", "PURCHASE", "HEADPHONES_001", baseTime + 125 * 60 * 1000));
+        events.add(createEvent("session-003", "user-003", EcommerceEventType.PRODUCT_VIEW, "HEADPHONES_001", baseTime + 120 * 60 * 1000));
+        events.add(createEvent("session-003", "user-003", EcommerceEventType.ADD_TO_CART, "HEADPHONES_001", baseTime + 122 * 60 * 1000));
+        events.add(createEvent("session-003", "user-003", EcommerceEventType.ORDER_PLACED, "HEADPHONES_001", baseTime + 125 * 60 * 1000));
 
         return env.fromCollection(events);
     }
 
-    private static EcommerceEvent createEvent(String sessionId, String userId, String eventType, String productId, long timestamp) {
+    private static EcommerceEvent createEvent(String sessionId, String userId, EcommerceEventType eventType, String productId, long timestamp) {
         EcommerceEvent event = new EcommerceEvent();
         event.sessionId = sessionId;
         event.userId = userId;

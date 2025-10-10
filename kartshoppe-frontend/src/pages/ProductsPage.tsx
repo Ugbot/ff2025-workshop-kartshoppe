@@ -80,7 +80,7 @@ const ProductsPage: React.FC = () => {
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category)
-    EventTracker.trackEvent('CATEGORY_FILTER', { category })
+    EventTracker.trackEvent('CATEGORY_BROWSE', { category })
   }
 
   const handleSortChange = (sort: string) => {

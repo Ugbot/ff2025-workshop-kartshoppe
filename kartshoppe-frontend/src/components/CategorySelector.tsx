@@ -15,7 +15,7 @@ const categories = [
   { id: 'Books', name: 'Books', icon: '📚', color: 'from-indigo-500 to-indigo-600' },
   { id: 'Toys', name: 'Toys & Games', icon: '🎮', color: 'from-purple-500 to-purple-600' },
   { id: 'Beauty', name: 'Beauty & Health', icon: '💄', color: 'from-rose-500 to-rose-600' },
-  { id: 'Food', name: 'Food & Grocery', icon: '🍕', color: 'from-yellow-500 to-yellow-600' },
+  { id: 'Food & Grocery', name: 'Food & Grocery', icon: '🍕', color: 'from-yellow-500 to-yellow-600' },
 ]
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({ selectedCategory, onCategorySelect }) => {

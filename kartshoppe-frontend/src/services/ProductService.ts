@@ -145,7 +145,7 @@ class ProductService {
   }
 
   private generateMockProducts(): Product[] {
-    const categories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books', 'Toys', 'Beauty', 'Food']
+    const categories = ['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Books', 'Toys', 'Beauty', 'Food & Grocery']
     const products: Product[] = []
     
     for (let i = 1; i <= 24; i++) {

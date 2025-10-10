@@ -206,9 +206,7 @@ public class BasketAnalysisJobWithPretraining {
 
         // Union historical and live patterns
         DataStream<BasketPattern> combinedPatterns = allPatterns
-            .union(liveMinedPatterns)
-            .name("Combined Patterns (Historical + Live)")
-            .uid("combined-patterns");
+            .union(liveMinedPatterns);
 
         // ========================================
         // STEP 5: Broadcast State - Distribute Patterns for Recommendations

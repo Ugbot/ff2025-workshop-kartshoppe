@@ -22,7 +22,6 @@ import org.apache.paimon.data.InternalRow;
 import org.apache.paimon.flink.FlinkCatalogFactory;
 import org.apache.paimon.flink.source.FlinkTableSource;
 import org.apache.paimon.options.Options;
-import org.apache.paimon.table.Table;
 import org.apache.paimon.types.RowType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,9 +84,7 @@ public class PaimonKafkaHybridSource {
             .uid("kafka-pattern-parser");
 
         // Union Paimon (historical) and Kafka (live) patterns
-        return paimonPatterns.union(kafkaPatterns)
-            .name("Hybrid Pattern Stream (Historical + Live)")
-            .uid("hybrid-pattern-stream");
+        return paimonPatterns.union(kafkaPatterns);
     }
 
     /**
@@ -227,8 +224,10 @@ public class PaimonKafkaHybridSource {
     
     /**
      * Create Paimon table source for historical patterns
+     * @deprecated Use createPaimonSourceTableAPI instead
      */
-    private static DataStream<String> createPaimonSource(
+    @Deprecated
+    private static DataStream<BasketPattern> createPaimonSource(
             StreamExecutionEnvironment env,
             String warehouse,
             String database,
@@ -250,7 +249,7 @@ public class PaimonKafkaHybridSource {
 
         // Get table
         Identifier tableIdentifier = Identifier.create(database, tableName);
-        Table table;
+        org.apache.paimon.table.Table table;
 
         try {
             table = catalog.getTable(tableIdentifier);
@@ -259,36 +258,21 @@ public class PaimonKafkaHybridSource {
             LOG.warn("⚠️  Paimon table {}.{} not found - using fallback sample patterns", database, tableName);
             LOG.info("   Run ./init-paimon-training-data.sh to create historical training data");
             // Fallback to sample patterns if table doesn't exist
-            return env.fromElements(generateInitialPatterns());
+            return env.fromElements(convertStringPatternsToObjects(generateInitialPatterns()));
         }
 
-        // Create Flink source from Paimon table
-        FlinkTableSource tableSource = new FlinkTableSource(
-            table,
-            null,  // No projection - read all columns
-            null,  // No filter - read all rows
-            null   // No limit - read entire table
-        );
+        // Note: FlinkTableSource is abstract in Paimon 0.9+
+        // Using Table API (createPaimonSourceTableAPI) instead for better compatibility
+        // This method is kept for reference but should not be used directly
 
-        // Convert Paimon rows to JSON strings
-        // Note: Paimon returns InternalRow, we need to convert to BasketPattern JSON
-        DataStream<org.apache.paimon.data.InternalRow> paimonRows =
-            env.fromSource(
-                tableSource.toFlinkSource(),
-                WatermarkStrategy.noWatermarks(),
-                "Paimon Historical Patterns"
-            );
-
-        // Convert InternalRow to JSON string
-        return paimonRows.map(new PaimonRowToJsonConverter(table.rowType()))
-            .name("Convert Paimon Rows to JSON")
-            .uid("paimon-row-converter");
+        LOG.warn("⚠️  createPaimonSource() is deprecated - use createPaimonSourceTableAPI() instead");
+        return env.fromElements(generateSamplePatterns());
     }
     
     /**
      * Create Paimon table for basket patterns
      */
-    private static Table createPatternTable(Catalog catalog, Identifier identifier) throws Exception {
+    private static org.apache.paimon.table.Table createPatternTable(Catalog catalog, Identifier identifier) throws Exception {
         // Define schema for basket patterns table
         String createTableDDL = String.format(
             "CREATE TABLE IF NOT EXISTS %s.%s (" +
@@ -372,6 +356,21 @@ public class PaimonKafkaHybridSource {
         return patterns.toArray(new String[0]);
     }
     
+    /**
+     * Convert String patterns to BasketPattern objects
+     */
+    private static BasketPattern[] convertStringPatternsToObjects(String[] patterns) {
+        List<BasketPattern> result = new ArrayList<>();
+        for (String json : patterns) {
+            try {
+                result.add(MAPPER.readValue(json, BasketPattern.class));
+            } catch (Exception e) {
+                LOG.warn("Failed to parse pattern: {}", json);
+            }
+        }
+        return result.toArray(new BasketPattern[0]);
+    }
+
     /**
      * Create a JSON pattern string
      */

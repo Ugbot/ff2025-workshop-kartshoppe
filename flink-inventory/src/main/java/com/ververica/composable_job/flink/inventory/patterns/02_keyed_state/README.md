@@ -34,44 +34,44 @@ After completing this module, you will understand:
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│              Flink Automatically Partitions by Key                   │
-│                                                                       │
-│    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐        │
-│    │  Task 1      │    │  Task 2      │    │  Task 3      │        │
-│    │  (P001, P004)│    │  (P002, P005)│    │  (P003, P006)│        │
-│    │              │    │              │    │              │        │
-│    │  State:      │    │  State:      │    │  State:      │        │
-│    │  ┌────────┐  │    │  ┌────────┐  │    │  ┌────────┐  │        │
-│    │  │ P001:  │  │    │  │ P002:  │  │    │  │ P003:  │  │        │
-│    │  │ {last: │  │    │  │ {last: │  │    │  │ {last: │  │        │
-│    │  │  Product}│  │    │  │  Product}│  │    │  │  Product}│  │        │
-│    │  └────────┘  │    │  └────────┘  │    │  └────────┘  │        │
-│    │  ┌────────┐  │    │  ┌────────┐  │    │  ┌────────┐  │        │
-│    │  │ P004:  │  │    │  │ P005:  │  │    │  │ P006:  │  │        │
-│    │  │ {last: │  │    │  │ {last: │  │    │  │ {last: │  │        │
-│    │  │  Product}│  │    │  │  Product}│  │    │  │  Product}│  │        │
-│    │  └────────┘  │    │  └────────┘  │    │  └────────┘  │        │
-│    └──────────────┘    └──────────────┘    └──────────────┘        │
+│              Flink Automatically Partitions by Key                  │
+│                                                                     │
+│    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐         │
+│    │  Task 1      │    │  Task 2      │    │  Task 3      │         │
+│    │  (P001, P004)│    │  (P002, P005)│    │  (P003, P006)│         │
+│    │              │    │              │    │              │         │
+│    │  State:      │    │  State:      │    │  State:      │         │
+│    │  ┌────────┐  │    │  ┌────────┐  │    │  ┌────────┐  │         │
+│    │  │ P001:  │  │    │  │ P002:  │  │    │  │ P003:  │  │         │
+│    │  │ {last: │  │    │  │ {last: │  │    │  │ {last: │  │         │
+│    │  │Product}│  │    │  │Product}│  │    │  │Product}│  │         │
+│    │  └────────┘  │    │  └────────┘  │    │  └────────┘  │         │
+│    │  ┌────────┐  │    │  ┌────────┐  │    │  ┌────────┐  │         │
+│    │  │ P004:  │  │    │  │ P005:  │  │    │  │ P006:  │  │         │
+│    │  │ {last: │  │    │  │ {last: │  │    │  │ {last: │  │         │
+│    │  │ Product}  │    │  │Product}│  │    │  │Product}│  │         │
+│    │  └────────┘  │    │  └────────┘  │    │  └────────┘  │         │
+│    └──────────────┘    └──────────────┘    └──────────────┘         │
 └─────────────────────────────────────────────────────────────────────┘
                                 │
                                 │ Checkpointing
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      State Backend Storage                           │
-│                                                                       │
-│  ┌──────────────────────┐        ┌──────────────────────┐          │
-│  │   Heap State Backend │        │  RocksDB State Backend│          │
-│  │                      │        │                       │          │
-│  │  - In JVM Heap       │        │  - On Local Disk      │          │
-│  │  - Fast access       │        │  - Large state support│          │
-│  │  - Limited by memory │        │  - Slower access      │          │
-│  │  - GC overhead       │        │  - No GC overhead     │          │
-│  └──────────────────────┘        └──────────────────────┘          │
-│                                                                       │
+│                      State Backend Storage                          │
+│                                                                     │
+│  ┌──────────────────────┐        ┌──────────────────────┐           │
+│  │   Heap State Backend │        │ RocksDB State Backend│           │
+│  │                      │        │                      │           │
+│  │  - In JVM Heap       │        │ - On Local Disk      │           │
+│  │  - Fast access       │        │ - Large state support│           │
+│  │  - Limited by memory │        │ - Slower access      │           │
+│  │  - GC overhead       │        │ - No GC overhead     │           │
+│  └──────────────────────┘        └──────────────────────┘           │
+│                                                                     │
 │  Checkpoint:  Task 1 State → S3/HDFS/Filesystem                     │
 │               Task 2 State → S3/HDFS/Filesystem                     │
 │               Task 3 State → S3/HDFS/Filesystem                     │
-│                                                                       │
+│                                                                     │
 │  Recovery:    Restore state from last checkpoint → Resume processing│
 └─────────────────────────────────────────────────────────────────────┘
 ```

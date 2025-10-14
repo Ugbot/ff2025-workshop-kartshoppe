@@ -205,6 +205,12 @@ public class EcommerceResource {
         // PHASE 1: Persist to PostgreSQL for CDC
         // ========================================
         try {
+            // Convert shipping address to JSON string
+            String shippingAddressJson = null;
+            if (order.shippingAddress != null) {
+                shippingAddressJson = MAPPER.writeValueAsString(order.shippingAddress);
+            }
+
             OrderEntity orderEntity = new OrderEntity(
                 order.orderId,
                 order.userId != null ? order.userId : "guest",
@@ -213,14 +219,10 @@ public class EcommerceResource {
                 BigDecimal.valueOf(order.subtotal),
                 BigDecimal.valueOf(order.tax),
                 BigDecimal.valueOf(order.shipping),
-                BigDecimal.valueOf(order.total)
+                BigDecimal.valueOf(order.totalAmount),
+                request.paymentMethod,
+                shippingAddressJson
             );
-
-            // Convert shipping address to JSON string
-            if (order.shippingAddress != null) {
-                orderEntity.shippingAddress = MAPPER.writeValueAsString(order.shippingAddress);
-            }
-            orderEntity.paymentMethod = request.paymentMethod;
 
             // Persist order items
             for (CartItem item : cart.items) {

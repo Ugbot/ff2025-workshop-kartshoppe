@@ -95,7 +95,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       # CDC Configuration
-      POSTGRES_INITDB_ARGS: "-c wal_level=logical"
+#      POSTGRES_INITDB_ARGS: "-c wal_level=logical"
     command:
       - "postgres"
       - "-c"

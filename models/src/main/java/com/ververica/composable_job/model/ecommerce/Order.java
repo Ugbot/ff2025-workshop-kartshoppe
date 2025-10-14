@@ -17,6 +17,7 @@ public class Order implements Serializable {
     public PaymentInfo paymentInfo;
     public long createdAt;
     public long updatedAt;
+    public long timestamp;
 
     public Order() {
     }
@@ -34,6 +35,7 @@ public class Order implements Serializable {
         this.status = "PENDING";
         this.createdAt = createdAt;
         this.updatedAt = createdAt;
+        this.timestamp = createdAt;
     }
 
     public static class ShippingAddress implements Serializable {
